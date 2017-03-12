@@ -605,8 +605,10 @@ orxTEXT *orxFASTCALL orxText_Create()
     /* Inits it */
     pstResult->zString    = orxNULL;
     pstResult->pstFont    = orxNULL;
-    pstResult->pstStyles  = orxNULL;
-    pstResult->pstMarkers = orxNULL;
+    pstResult->pstStyles  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_STYLE),
+                                           orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
+    pstResult->pstMarkers = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER),
+                                           orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
     /* Inits flags */
     orxStructure_SetFlags(pstResult, orxTEXT_KU32_FLAG_NONE, orxTEXT_KU32_MASK_ALL);
@@ -702,6 +704,12 @@ orxSTATUS orxFASTCALL orxText_Delete(orxTEXT *_pstText)
 
     /* Removes font */
     orxText_SetFont(_pstText, orxNULL);
+
+    /* Deletes markers */
+    orxBank_Delete(_pstText->pstMarkers);
+
+    /* Deletes styles */
+    orxBank_Delete(_pstText->pstStyles);
 
     /* Deletes structure */
     orxStructure_Delete(_pstText);
