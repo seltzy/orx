@@ -65,13 +65,43 @@
 #define orxTEXT_KZ_CONFIG_FONT                "Font"
 
 #define orxTEXT_KC_LOCALE_MARKER              '$'
+#define orxTEXT_KC_STYLE_MARKER_OPEN          '<'
+#define orxTEXT_KC_STYLE_MARKER_CLOSE         '>'
+#define orxTEXT_KC_STYLE_MARKER_ASSIGN        '='
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
+#define orxTEXT_KU32_MARKER_BANK_SIZE         128         /**< Bank size */
+#define orxTEXT_KU32_STYLE_BANK_SIZE          128         /**< Bank size */
 
 
 /***************************************************************************
  * Structure declaration                                                   *
  ***************************************************************************/
+
+typedef enum __orxTEXT_MARKER_TYPE_t
+{
+  orxTEXT_MARKER_TYPE_POP = 0,
+  orxTEXT_MARKER_TYPE_PUSH_FONT,
+  orxTEXT_MARKER_TYPE_PUSH_COLOR,
+  orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
+} orxTEXT_MARKER_TYPE;
+
+typedef struct __orxTEXT_STYLE_t
+{
+  orxTEXT_MARKER_TYPE eType;
+  union
+  {
+    orxFONT        *pstFont;
+    orxRGBA         stRGBA;
+  };
+} orxTEXT_STYLE;
+
+typedef struct __orxTEXT_MARKER_t
+{
+  orxLINKLIST_NODE  stNode;
+  orxU32            u32Index;
+  orxTEXT_STYLE    *pstStyle;
+} orxTEXT_MARKER;
 
 /** Text structure
  */
@@ -79,6 +109,8 @@ struct __orxTEXT_t
 {
   orxSTRUCTURE      stStructure;                /**< Public structure, first structure member : 32 */
   orxFONT          *pstFont;                    /**< Font : 20 */
+  orxBANK          *pstStyles;
+  orxBANK          *pstMarkers;
   const orxSTRING   zString;                    /**< String : 24 */
   orxFLOAT          fWidth;                     /**< Width : 28 */
   orxFLOAT          fHeight;                    /**< Height : 32 */
@@ -571,8 +603,10 @@ orxTEXT *orxFASTCALL orxText_Create()
   if(pstResult != orxNULL)
   {
     /* Inits it */
-    pstResult->zString  = orxNULL;
-    pstResult->pstFont  = orxNULL;
+    pstResult->zString    = orxNULL;
+    pstResult->pstFont    = orxNULL;
+    pstResult->pstStyles  = orxNULL;
+    pstResult->pstMarkers = orxNULL;
 
     /* Inits flags */
     orxStructure_SetFlags(pstResult, orxTEXT_KU32_FLAG_NONE, orxTEXT_KU32_MASK_ALL);
