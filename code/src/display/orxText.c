@@ -184,21 +184,25 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
 
 static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
 {
-  /* TODO: Reorder these declarations and assignments */
+  const orxSTRING zMarkedString = orxNULL;
+  const orxSTRING zResult = orxNULL;
+  orxSTRING zCleanedString = orxNULL;
+  orxU32 u32CleanedSize, u32CleanedLength;
+
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkers);
   orxBank_Clear(_pstText->pstStyles);
 
+  /* If string is invalid, return it. */
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
   {
     return _zString;
   }
 
-  const orxSTRING zMarkedString = _zString;
-  const orxSTRING zResult       = orxNULL;
-  orxU32 u32CleanedSize         = orxString_GetLength(zMarkedString) * sizeof(orxCHAR);
-  orxSTRING zCleanedString      = (orxSTRING) orxMemory_Allocate(u32CleanedSize, orxMEMORY_TYPE_MAIN);
-  orxU32 u32CleanedLength       = 0;
+  zMarkedString    = _zString;
+  u32CleanedSize   = orxString_GetLength(zMarkedString) * sizeof(orxCHAR);
+  u32CleanedLength = 0;
+  zCleanedString   = (orxSTRING) orxMemory_Allocate(u32CleanedSize, orxMEMORY_TYPE_MAIN);
   orxASSERT(zCleanedString != orxNULL);
   orxMemory_Zero(zCleanedString, u32CleanedSize);
 
