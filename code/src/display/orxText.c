@@ -294,10 +294,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Allocate a marker and style */
-    orxTEXT_STYLE *pstStyle = orxBank_Allocate(_pstText->pstStyles);
+    orxTEXT_STYLE *pstStyle = (orxTEXT_STYLE *) orxBank_Allocate(_pstText->pstStyles);
     orxASSERT(pstStyle != orxNULL);
     pstStyle->eType = eType;
-    orxTEXT_MARKER *pstMarker = orxBank_Allocate(_pstText->pstMarkers);
+    orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_Allocate(_pstText->pstMarkers);
     orxASSERT(pstMarker != orxNULL);
     /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER)); */
     pstMarker->u32Index = u32CleanedLength;
@@ -316,10 +316,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     zNextToken = orxString_SkipWhiteSpaces(zNextToken + 1);
 
     /* Make a temporary string to hold the value alone */
-    orxU32 u32StyleStringValueSize = (zMarkerEnd - zNextToken - 1) * sizeof(orxCHAR);
-    orxSTRING zTempValue = orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
+    orxU32 u32StyleStringValueSize = (orxU32)(zMarkerEnd - zNextToken - 1) * (orxU32)sizeof(orxCHAR);
+    orxSTRING zTempValue = (orxSTRING) orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
     orxMemory_Zero(zTempValue, u32StyleStringValueSize);
-    orxString_NCopy(zTempValue, zNextToken, (zMarkerEnd - zNextToken - 1));
+    orxString_NCopy(zTempValue, zNextToken, (orxU32)(zMarkerEnd - zNextToken - 1));
     /* TODO: Maybe avoid allocating new memory for this? Could terminate/unterminate zNextToken instead. */
 
     /* Check style values */
