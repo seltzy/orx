@@ -293,16 +293,16 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       continue;
     }
 
-    /* Allocate a marker and style */
+    /* Create style */
     orxTEXT_STYLE *pstStyle = (orxTEXT_STYLE *) orxBank_Allocate(_pstText->pstStyles);
     orxASSERT(pstStyle != orxNULL);
     pstStyle->eType = eType;
+
+    /* Create marker */
     orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_Allocate(_pstText->pstMarkers);
     orxASSERT(pstMarker != orxNULL);
-    /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER)); */
     pstMarker->u32Index = u32CleanedLength;
     pstMarker->pstStyle = pstStyle;
-    /* orxMemory_Zero(pstStyle, sizeof(orxTEXT_STYLE)); */
 
     /* Setup marker and style */
 
