@@ -182,26 +182,25 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
   return zResult;
 }
 
-static orxSTATUS orxFASTCALL orxText_ProcessTextMarkers(orxTEXT *_pstText)
+static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
 {
   /* TODO: Reorder these declarations and assignments */
-  orxSTATUS eResult = orxSTATUS_FAILURE;
-
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkers);
   orxBank_Clear(_pstText->pstStyles);
 
-  const orxSTRING zMarkedString  = _pstText->zString;
-  if (zMarkedString == orxNULL || zMarkedString == orxSTRING_EMPTY)
+  if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
   {
-    return eResult;
+    return _zString;
   }
 
-  orxU32 u32CleanedSize    = orxString_GetLength(zMarkedString) * sizeof(orxCHAR);
-  orxSTRING zCleanedString = (orxSTRING) orxMemory_Allocate(u32CleanedSize, orxMEMORY_TYPE_MAIN);
+  const orxSTRING zMarkedString = _zString;
+  const orxSTRING zResult       = orxNULL;
+  orxU32 u32CleanedSize         = orxString_GetLength(zMarkedString) * sizeof(orxCHAR);
+  orxSTRING zCleanedString      = (orxSTRING) orxMemory_Allocate(u32CleanedSize, orxMEMORY_TYPE_MAIN);
+  orxU32 u32CleanedLength       = 0;
   orxASSERT(zCleanedString != orxNULL);
   orxMemory_Zero(zCleanedString, u32CleanedSize);
-  orxU32 u32CleanedLength  = 0;
 
   /* TODO: Implement escapes for markers? */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL)) {
@@ -358,11 +357,17 @@ static orxSTATUS orxFASTCALL orxText_ProcessTextMarkers(orxTEXT *_pstText)
 
   /* Terminate cleaned string */
   zCleanedString[u32CleanedLength] = orxCHAR_NULL;
-  /* Set the string */
-  eResult = orxText_SetString(_pstText, zCleanedString);
+  /* Has new string? */
+  if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
+  {
+    /* Stores a duplicate */
+    zResult = orxString_Store(zCleanedString);
+  }
   /* Since the string is now stored internally, we can safely free it of its mortal coil */
   orxMemory_Free(zCleanedString);
-  return eResult;
+
+  /* Done! */
+  return zResult;
 }
 
 static orxSTATUS orxFASTCALL orxText_ProcessConfigData(orxTEXT *_pstText)
@@ -442,9 +447,6 @@ static orxSTATUS orxFASTCALL orxText_ProcessConfigData(orxTEXT *_pstText)
     /* Stores raw text */
     eResult = orxText_SetString(_pstText, zString);
   }
-
-  /* Process text markers */
-  eResult = orxText_ProcessTextMarkers(_pstText);
 
   /* Pops config section */
   orxConfig_PopSection();
@@ -1022,6 +1024,9 @@ orxSTATUS orxFASTCALL orxText_SetString(orxTEXT *_pstText, const orxSTRING _zStr
     /* Cleans it */
     _pstText->zString = orxNULL;
   }
+
+  /* Process markers out of the string */
+  _zString = orxText_ProcessMarkedString(_pstText, _zString);
 
   /* Has new string? */
   if((_zString != orxNULL) && (_zString != orxSTRING_EMPTY))
