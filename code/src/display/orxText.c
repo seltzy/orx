@@ -252,7 +252,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
       zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_FONT;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
         if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_PUSH_FONT;
@@ -263,7 +263,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
       zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_COLOR;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
         if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_PUSH_COLOR;
@@ -275,7 +275,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_POP;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
       /* TODO: Perhaps make it so mulitple orxTEXT_KZ_STYLE_TYPE_POPs in a row represent multiple pops */
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
         /* POP is unique in that it doesn't have an assignment operator */
         if (zNextToken == zMarkerEnd) {
