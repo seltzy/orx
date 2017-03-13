@@ -82,19 +82,9 @@
  * Structure declaration                                                   *
  ***************************************************************************/
 
-typedef enum __orxTEXT_MARKER_TYPE_t
-{
-  orxTEXT_MARKER_TYPE_POP = 0,
-  orxTEXT_MARKER_TYPE_CLEAR,
-  orxTEXT_MARKER_TYPE_FONT,
-  orxTEXT_MARKER_TYPE_COLOR,
-  orxTEXT_MARKER_TYPE_SCALE,
-  orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
-} orxTEXT_MARKER_TYPE;
-
 /** Marker format data
  *  Capable of being shared between multiple markers.
- *  TODO: Re-use these between multiple markers.
+ *  TODO: Either reuse these between multiple markers, or integrate with orxTEXT_MARKER.
  */
 typedef struct __orxTEXT_MARKER_DATA_t
 {
@@ -127,13 +117,13 @@ typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
  *  Used to iterate markers which modifies an internal stack.
  *  Provides a way to access marker data.
  */
-typedef struct orxTEXT_MARKER_ITERATOR_t
+struct orxTEXT_MARKER_ITERATOR_t
 {
   orxTEXT       *pstText;
   orxU32         u32StringIndex;
   orxU32         u32BankCellIndex;
   orxLINKLIST   *pstMarkerStack;
-} orxTEXT_MARKER_ITERATOR;
+};
 
 /** Gets appropriate marker handle for given string position
  * @param[in]   _hIterator      Iterator from previous search or orxHANDLE_UNDEFINED/orxNULL for a new search
@@ -1065,6 +1055,7 @@ orxFONT *orxFASTCALL orxText_GetFont(const orxTEXT *_pstText)
  * @param[in]   _zString      String to contain
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
+
 orxSTATUS orxFASTCALL orxText_SetString(orxTEXT *_pstText, const orxSTRING _zString)
 {
   orxSTATUS eResult = orxSTATUS_SUCCESS;
