@@ -360,8 +360,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* Make a temporary string to hold the value alone */
     orxU32 u32StyleStringValueSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
     orxSTRING zTempValue = (orxSTRING) orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
-    orxMemory_Zero(zTempValue, u32StyleStringValueSize);
-    orxString_NCopy(zTempValue, zNextToken, (orxU32)(zMarkerEnd - zNextToken));
+    orxASSERT(zTempValue != orxNULL);
+    orxString_NCopy(zTempValue, zNextToken, u32StyleStringValueSize);
+    zTempValue[u32StyleStringValueSize-1] = orxCHAR_NULL;
     /* TODO: Maybe avoid allocating new memory for this? Could terminate/unterminate zNextToken instead. */
 
     /* Check style values */
