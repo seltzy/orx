@@ -364,3 +364,13 @@ project "11_Spawner"
 project "12_Lighting"
 
     files {"../src/12_Lighting.c"}
+
+
+--
+-- Project: 12_Lighting
+--
+
+project "13_Text"
+
+    files {"../src/13_Text.c"}
+

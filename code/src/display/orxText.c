@@ -229,27 +229,32 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
 
 static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
 {
-  /* TODO: Reorder these declarations and assignments */
+  const orxSTRING zMarkedString = orxNULL;
+  const orxSTRING zResult = orxNULL;
+  orxSTRING zCleanedString = orxNULL;
+  orxU32 u32CleanedSize, u32CleanedLength;
+
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkerCells);
   orxBank_Clear(_pstText->pstMarkerDatas);
 
+  /* If string is invalid, return it. */
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
   {
     return _zString;
   }
 
-  const orxSTRING zMarkedString = _zString;
-  const orxSTRING zResult       = orxNULL;
-  orxU32 u32CleanedSize         = orxString_GetLength(zMarkedString) * sizeof(orxCHAR);
-  orxSTRING zCleanedString      = (orxSTRING) orxMemory_Allocate(u32CleanedSize, orxMEMORY_TYPE_MAIN);
-  orxU32 u32CleanedLength       = 0;
+  zMarkedString    = _zString;
+  u32CleanedSize   = orxString_GetLength(zMarkedString) + 1;
+  u32CleanedLength = 0;
+  zCleanedString   = (orxSTRING) orxMemory_Allocate(u32CleanedSize * sizeof(orxCHAR), orxMEMORY_TYPE_MAIN);
   orxASSERT(zCleanedString != orxNULL);
-  orxMemory_Zero(zCleanedString, u32CleanedSize);
+  orxMemory_Zero(zCleanedString, u32CleanedSize * sizeof(orxCHAR));
 
   /* TODO: Implement escapes for markers? */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL)) {
     orxU32 u32StoreLength = 0;
+
     /* Find next marker open */
     const orxSTRING zMarkerStart = orxString_SearchChar(zMarkedString, orxTEXT_KC_STRING_MARKER_OPEN);
     /* If not found, store remainder of string as clean text and break */
@@ -293,8 +298,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
       zTestMarkerType = orxTEXT_KZ_STRING_TYPE_FONT;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
+        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
         if (*zNextToken == orxTEXT_KC_STRING_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_FONT;
         }
@@ -304,8 +309,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
       zTestMarkerType = orxTEXT_KZ_STRING_TYPE_COLOR;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
+        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
         if (*zNextToken == orxTEXT_KC_STRING_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_COLOR;
         }
@@ -316,8 +321,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       zTestMarkerType = orxTEXT_KZ_STRING_TYPE_POP;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
       /* TODO: Perhaps make it so mulitple orxTEXT_KZ_STYLE_TYPE_POPs in a row represent multiple pops */
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
+      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
+        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
         /* POP is unique in that it doesn't have an assignment operator */
         if (zNextToken == zMarkerEnd) {
           eType = orxTEXT_MARKER_TYPE_POP;
@@ -335,17 +340,13 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Allocate a marker and style */
-    orxTEXT_MARKER_DATA *pstStyle = orxBank_Allocate(_pstText->pstMarkerDatas);
+    orxTEXT_MARKER_DATA *pstStyle = (orxTEXT_MARKER_DATA *) orxBank_Allocate(_pstText->pstMarkerDatas);
     orxASSERT(pstStyle != orxNULL);
     pstStyle->eType = eType;
-    orxTEXT_MARKER_CELL *pstMarker = orxBank_Allocate(_pstText->pstMarkerCells);
+    orxTEXT_MARKER_CELL *pstMarker = (orxTEXT_MARKER_CELL *) orxBank_Allocate(_pstText->pstMarkerCells);
     orxASSERT(pstMarker != orxNULL);
-    /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER_CELL)); */
     pstMarker->u32Index = u32CleanedLength;
     pstMarker->pstStyle = pstStyle;
-    /* orxMemory_Zero(pstStyle, sizeof(orxTEXT_MARKER_DATA)); */
-
-    /* Setup marker and style */
 
     /* Pops can be stored immediately since they have no value in their style*/
     if (eType == orxTEXT_MARKER_TYPE_POP) {
@@ -357,18 +358,20 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     zNextToken = orxString_SkipWhiteSpaces(zNextToken + 1);
 
     /* Make a temporary string to hold the value alone */
-    orxU32 u32StyleStringValueSize = (zMarkerEnd - zNextToken - 1) * sizeof(orxCHAR);
-    orxSTRING zTempValue = orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
+    orxU32 u32StyleStringValueSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
+    orxSTRING zTempValue = (orxSTRING) orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
     orxMemory_Zero(zTempValue, u32StyleStringValueSize);
-    orxString_NCopy(zTempValue, zNextToken, (zMarkerEnd - zNextToken - 1));
+    orxString_NCopy(zTempValue, zNextToken, (orxU32)(zMarkerEnd - zNextToken));
     /* TODO: Maybe avoid allocating new memory for this? Could terminate/unterminate zNextToken instead. */
 
     /* Check style values */
-    /* Attempt to store font style */
+
     if (eType == orxTEXT_MARKER_TYPE_FONT)
     {
+      /* Attempt to store font style */
       const orxFONT *pstFont = orxFont_CreateFromConfig(zTempValue);
       orxMemory_Free(zTempValue); /* We don't need this anymore */
+      /* EDGE CASE: Handle invalid/missing font */
       if (pstFont == orxNULL)
       {
         pstFont = orxFont_GetDefaultFont();
@@ -376,32 +379,36 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
       pstStyle->pstFont = pstFont;
-    } else if (eType == orxTEXT_MARKER_TYPE_COLOR)
+    }
+    else if (eType == orxTEXT_MARKER_TYPE_COLOR)
     {
-      /* EDGE CASE: Handle invalid/missing color */
+      /* Attempt to store color style */
       orxVECTOR vColor = {0};
+      /* EDGE CASE: Handle invalid/missing color */
       if (orxString_ToVector(zTempValue, &vColor, orxNULL) == orxSTATUS_FAILURE)
       {
         /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
         orxVector_Set(&vColor, 1, 1, 1);
       }
       orxMemory_Free(zTempValue); /* We don't need this anymore */
-      orxCOLOR stColor = {vColor, 0.0f};
+      orxCOLOR stColor = {vColor, 1.0f};
       pstStyle->stRGBA = orxColor_ToRGBA(&stColor);
-    } else
+    }
+    else
     {
       /* Well this wasn't expected. Store marker as clean text, move marked string forward, and continue */
       u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
       u32CleanedLength += u32StoreLength;
+      orxMemory_Free(zTempValue);
     }
     /* Move the marked string forward so we may continue */
     zMarkedString = zMarkerEnd + 1;
-    orxMemory_Free(zTempValue);
   }
 
   /* Terminate cleaned string */
   zCleanedString[u32CleanedLength] = orxCHAR_NULL;
+
   /* Has new string? */
   if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
   {
