@@ -65,12 +65,12 @@
 #define orxTEXT_KZ_CONFIG_FONT                "Font"
 
 #define orxTEXT_KC_LOCALE_MARKER              '$'
-#define orxTEXT_KC_STYLE_MARKER_OPEN          '<'
-#define orxTEXT_KC_STYLE_MARKER_CLOSE         '>'
-#define orxTEXT_KC_STYLE_MARKER_ASSIGN        '='
-#define orxTEXT_KZ_STYLE_TYPE_FONT            "font"
-#define orxTEXT_KZ_STYLE_TYPE_COLOR           "col"
-#define orxTEXT_KZ_STYLE_TYPE_POP             "!"
+#define orxTEXT_KC_STRING_MARKER_OPEN         '<'
+#define orxTEXT_KC_STRING_MARKER_CLOSE        '>'
+#define orxTEXT_KC_STRING_MARKER_ASSIGN       '='
+#define orxTEXT_KZ_STRING_TYPE_FONT           "font"
+#define orxTEXT_KZ_STRING_TYPE_COLOR          "col"
+#define orxTEXT_KZ_STRING_TYPE_POP            "!"
 /* TODO: Implement a clear-all-styles marker */
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
@@ -84,7 +84,7 @@
 
 /** Marker format data
  *  Capable of being shared between multiple markers.
- *  TODO: Either reuse these between multiple markers, or integrate with orxTEXT_MARKER.
+ *  TODO: Either reuse these between multiple markers, or integrate with orxTEXT_MARKER_CELL.
  */
 typedef struct __orxTEXT_MARKER_DATA_t
 {
@@ -101,16 +101,16 @@ typedef struct __orxTEXT_MARKER_DATA_t
 /** Marker position data
  *  Where the marker resides in an orxTEXT string.
  */
-typedef struct __orxTEXT_MARKER_t
+typedef struct __orxTEXT_MARKER_CELL_t
 {
   orxU32                      u32Index;
   const orxTEXT_MARKER_DATA  *pstStyle;
-} orxTEXT_MARKER;
+} orxTEXT_MARKER_CELL;
 
 typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
 {
-  orxLINKLIST_NODE       stNode;
-  const orxTEXT_MARKER  *pstMarker;
+  orxLINKLIST_NODE            stNode;
+  const orxTEXT_MARKER_CELL  *pstMarker;
 } orxTEXT_MARKER_STACK_ENTRY;
 
 /** Marker stack traversal
@@ -157,8 +157,8 @@ struct __orxTEXT_t
 {
   orxSTRUCTURE      stStructure;                /**< Public structure, first structure member : 32 */
   orxFONT          *pstFont;                    /**< Font : 20 */
-  orxBANK          *pstStyles;
-  orxBANK          *pstMarkers;
+  orxBANK          *pstMarkerDatas;
+  orxBANK          *pstMarkerCells;
   const orxSTRING   zString;                    /**< String : 24 */
   orxFLOAT          fWidth;                     /**< Width : 28 */
   orxFLOAT          fHeight;                    /**< Height : 32 */
@@ -231,8 +231,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 {
   /* TODO: Reorder these declarations and assignments */
   /* Clear banks */
-  orxBank_Clear(_pstText->pstMarkers);
-  orxBank_Clear(_pstText->pstStyles);
+  orxBank_Clear(_pstText->pstMarkerCells);
+  orxBank_Clear(_pstText->pstMarkerDatas);
 
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
   {
@@ -251,7 +251,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL)) {
     orxU32 u32StoreLength = 0;
     /* Find next marker open */
-    const orxSTRING zMarkerStart = orxString_SearchChar(zMarkedString, orxTEXT_KC_STYLE_MARKER_OPEN);
+    const orxSTRING zMarkerStart = orxString_SearchChar(zMarkedString, orxTEXT_KC_STRING_MARKER_OPEN);
     /* If not found, store remainder of string as clean text and break */
     if (zMarkerStart == orxNULL) {
       u32StoreLength = u32CleanedSize - u32CleanedLength;
@@ -269,7 +269,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     zMarkedString = zMarkerStart;
 
     /* Find next marker close */
-    const orxSTRING zMarkerEnd = orxString_SearchChar(zMarkedString, orxTEXT_KC_STYLE_MARKER_CLOSE);
+    const orxSTRING zMarkerEnd = orxString_SearchChar(zMarkedString, orxTEXT_KC_STRING_MARKER_CLOSE);
     /* If not found, store remainder of string as clean text and break */
     if (zMarkerEnd == orxNULL) {
       u32StoreLength = u32CleanedSize - u32CleanedLength;
@@ -291,29 +291,29 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* Check for font */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_FONT;
+      zTestMarkerType = orxTEXT_KZ_STRING_TYPE_FONT;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
       if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
-        if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
+        if (*zNextToken == orxTEXT_KC_STRING_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_FONT;
         }
       }
     }
     /* Check for color */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_COLOR;
+      zTestMarkerType = orxTEXT_KZ_STRING_TYPE_COLOR;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
       if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
-        if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
+        if (*zNextToken == orxTEXT_KC_STRING_MARKER_ASSIGN) {
           eType = orxTEXT_MARKER_TYPE_COLOR;
         }
       }
     }
     /* Check for pop */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_STYLE_TYPE_POP;
+      zTestMarkerType = orxTEXT_KZ_STRING_TYPE_POP;
       u32TypeLength = orxString_GetLength(zTestMarkerType);
       /* TODO: Perhaps make it so mulitple orxTEXT_KZ_STYLE_TYPE_POPs in a row represent multiple pops */
       if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
@@ -335,12 +335,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Allocate a marker and style */
-    orxTEXT_MARKER_DATA *pstStyle = orxBank_Allocate(_pstText->pstStyles);
+    orxTEXT_MARKER_DATA *pstStyle = orxBank_Allocate(_pstText->pstMarkerDatas);
     orxASSERT(pstStyle != orxNULL);
     pstStyle->eType = eType;
-    orxTEXT_MARKER *pstMarker = orxBank_Allocate(_pstText->pstMarkers);
+    orxTEXT_MARKER_CELL *pstMarker = orxBank_Allocate(_pstText->pstMarkerCells);
     orxASSERT(pstMarker != orxNULL);
-    /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER)); */
+    /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER_CELL)); */
     pstMarker->u32Index = u32CleanedLength;
     pstMarker->pstStyle = pstStyle;
     /* orxMemory_Zero(pstStyle, sizeof(orxTEXT_MARKER_DATA)); */
@@ -841,9 +841,9 @@ orxTEXT *orxFASTCALL orxText_Create()
     /* Inits it */
     pstResult->zString    = orxNULL;
     pstResult->pstFont    = orxNULL;
-    pstResult->pstStyles  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_DATA),
+    pstResult->pstMarkerDatas  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_DATA),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
-    pstResult->pstMarkers = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER),
+    pstResult->pstMarkerCells = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER_CELL),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
     /* Inits flags */
@@ -942,10 +942,10 @@ orxSTATUS orxFASTCALL orxText_Delete(orxTEXT *_pstText)
     orxText_SetFont(_pstText, orxNULL);
 
     /* Deletes markers */
-    orxBank_Delete(_pstText->pstMarkers);
+    orxBank_Delete(_pstText->pstMarkerCells);
 
     /* Deletes styles */
-    orxBank_Delete(_pstText->pstStyles);
+    orxBank_Delete(_pstText->pstMarkerDatas);
 
     /* Deletes structure */
     orxStructure_Delete(_pstText);
