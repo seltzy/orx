@@ -71,6 +71,7 @@
 #define orxTEXT_KZ_STYLE_TYPE_FONT            "font"
 #define orxTEXT_KZ_STYLE_TYPE_COLOR           "col"
 #define orxTEXT_KZ_STYLE_TYPE_POP             "!"
+/* TODO: Implement a clear-all-styles marker */
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
 #define orxTEXT_KU32_MARKER_BANK_SIZE         128         /**< Bank size */
@@ -84,27 +85,81 @@
 typedef enum __orxTEXT_MARKER_TYPE_t
 {
   orxTEXT_MARKER_TYPE_POP = 0,
-  orxTEXT_MARKER_TYPE_PUSH_FONT,
-  orxTEXT_MARKER_TYPE_PUSH_COLOR,
+  orxTEXT_MARKER_TYPE_CLEAR,
+  orxTEXT_MARKER_TYPE_FONT,
+  orxTEXT_MARKER_TYPE_COLOR,
+  orxTEXT_MARKER_TYPE_SCALE,
   orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
 } orxTEXT_MARKER_TYPE;
 
-typedef struct __orxTEXT_STYLE_t
+/** Marker format data
+ *  Capable of being shared between multiple markers.
+ *  TODO: Re-use these between multiple markers.
+ */
+typedef struct __orxTEXT_MARKER_DATA_t
 {
   orxTEXT_MARKER_TYPE eType;
   union
   {
+    orxBOOL         bIsValid;
     const orxFONT  *pstFont;
     orxRGBA         stRGBA;
+    orxVECTOR       vScale;
   };
-} orxTEXT_STYLE;
+} orxTEXT_MARKER_DATA;
 
+/** Marker position data
+ *  Where the marker resides in an orxTEXT string.
+ */
 typedef struct __orxTEXT_MARKER_t
 {
-  orxLINKLIST_NODE      stNode;
-  orxU32                u32Index;
-  const orxTEXT_STYLE  *pstStyle;
+  orxU32                      u32Index;
+  const orxTEXT_MARKER_DATA  *pstStyle;
 } orxTEXT_MARKER;
+
+typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
+{
+  orxLINKLIST_NODE       stNode;
+  const orxTEXT_MARKER  *pstMarker;
+} orxTEXT_MARKER_STACK_ENTRY;
+
+/** Marker stack traversal
+ *  Used to iterate markers which modifies an internal stack.
+ *  Provides a way to access marker data.
+ */
+typedef struct orxTEXT_MARKER_ITERATOR_t
+{
+  orxTEXT       *pstText;
+  orxU32         u32StringIndex;
+  orxU32         u32BankCellIndex;
+  orxLINKLIST   *pstMarkerStack;
+} orxTEXT_MARKER_ITERATOR;
+
+/** Gets appropriate marker handle for given string position
+ * @param[in]   _hIterator      Iterator from previous search or orxHANDLE_UNDEFINED/orxNULL for a new search
+ * @param[in]   _u32StringIndex Position in string to find appropriate marker handle for
+ * @return Iterator for appropriate marker, orxHANDLE_UNDEFINED otherwise
+ */
+const orxHANDLE orxFASTCALL orxText_GetMarker(const orxHANDLE _hIterator, orxU32 _u32StringIndex)
+{
+  return orxHANDLE_UNDEFINED;
+}
+const orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(const orxHANDLE _hIterator)
+{
+  return orxTEXT_MARKER_TYPE_NONE;
+}
+const orxFONT* orxFASTCALL orxText_GetMarkerFont(const orxHANDLE _hIterator)
+{
+  return orxNULL;
+}
+const orxRGBA orxFASTCALL orxText_GetMarkerColor(const orxHANDLE _hIterator)
+{
+  return orx2RGBA(255, 255, 255, 255);
+}
+const orxVECTOR orxFASTCALL orxText_GetMarkerScale(const orxHANDLE _hIterator)
+{
+  return orxVECTOR_1;
+}
 
 /** Text structure
  */
@@ -251,7 +306,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
         if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
-          eType = orxTEXT_MARKER_TYPE_PUSH_FONT;
+          eType = orxTEXT_MARKER_TYPE_FONT;
         }
       }
     }
@@ -262,7 +317,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength)) {
         zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength + 1);
         if (*zNextToken == orxTEXT_KC_STYLE_MARKER_ASSIGN) {
-          eType = orxTEXT_MARKER_TYPE_PUSH_COLOR;
+          eType = orxTEXT_MARKER_TYPE_COLOR;
         }
       }
     }
@@ -290,7 +345,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Allocate a marker and style */
-    orxTEXT_STYLE *pstStyle = orxBank_Allocate(_pstText->pstStyles);
+    orxTEXT_MARKER_DATA *pstStyle = orxBank_Allocate(_pstText->pstStyles);
     orxASSERT(pstStyle != orxNULL);
     pstStyle->eType = eType;
     orxTEXT_MARKER *pstMarker = orxBank_Allocate(_pstText->pstMarkers);
@@ -298,7 +353,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* orxMemory_Zero(pstMarker, sizeof(orxTEXT_MARKER)); */
     pstMarker->u32Index = u32CleanedLength;
     pstMarker->pstStyle = pstStyle;
-    /* orxMemory_Zero(pstStyle, sizeof(orxTEXT_STYLE)); */
+    /* orxMemory_Zero(pstStyle, sizeof(orxTEXT_MARKER_DATA)); */
 
     /* Setup marker and style */
 
@@ -320,7 +375,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* Check style values */
     /* Attempt to store font style */
-    if (eType == orxTEXT_MARKER_TYPE_PUSH_FONT)
+    if (eType == orxTEXT_MARKER_TYPE_FONT)
     {
       const orxFONT *pstFont = orxFont_CreateFromConfig(zTempValue);
       orxMemory_Free(zTempValue); /* We don't need this anymore */
@@ -331,7 +386,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
       pstStyle->pstFont = pstFont;
-    } else if (eType == orxTEXT_MARKER_TYPE_PUSH_COLOR)
+    } else if (eType == orxTEXT_MARKER_TYPE_COLOR)
     {
       /* EDGE CASE: Handle invalid/missing color */
       orxVECTOR vColor = {0};
@@ -796,7 +851,7 @@ orxTEXT *orxFASTCALL orxText_Create()
     /* Inits it */
     pstResult->zString    = orxNULL;
     pstResult->pstFont    = orxNULL;
-    pstResult->pstStyles  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_STYLE),
+    pstResult->pstStyles  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_DATA),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
     pstResult->pstMarkers = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
