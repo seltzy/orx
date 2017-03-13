@@ -1855,6 +1855,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
   orxDISPLAY_MATRIX mTransform;
   const orxCHAR    *pc;
   orxU32            u32CharacterCodePoint;
+  orxU32            u32CharacterIndex;
   GLfloat           fX, fY, fHeight;
   orxSTATUS         eResult = orxSTATUS_SUCCESS;
 
@@ -1875,7 +1876,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
   orxDisplay_GLFW_PrepareBitmap(_pstFont, _eSmoothing, _eBlendMode);
 
   /* For all characters */
-  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), fX = 0.0f, fY = 0.0f;
+  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f;
       u32CharacterCodePoint != orxCHAR_NULL;
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
@@ -1909,7 +1910,6 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
       {
         const orxCHARACTER_GLYPH *pstGlyph;
         orxFLOAT                  fWidth;
-
         /* Gets glyph from UTF-8 table */
         pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(_pstMap->pstCharacterTable, u32CharacterCodePoint);
 
@@ -1962,6 +1962,9 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
 
         /* Updates X position */
         fX += fWidth;
+
+        /* Updates character index */
+        u32CharacterIndex++;
 
         break;
       }
