@@ -109,8 +109,8 @@ typedef struct __orxTEXT_MARKER_DATA_t
  */
 typedef struct __orxTEXT_MARKER_CELL_t
 {
-  orxU32                      u32Index;
-  const orxTEXT_MARKER_DATA  *pstStyle;
+  orxU32                           u32Index;
+  const orxTEXT_MARKER_DATA       *pstData;
 } orxTEXT_MARKER_CELL;
 
 typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
@@ -123,39 +123,15 @@ typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
  *  Used to iterate markers which modifies an internal stack.
  *  Provides a way to access marker data.
  */
-struct orxTEXT_MARKER_ITERATOR_t
+struct __orxTEXT_MARKER_WALKER_t
 {
-  orxTEXT       *pstText;
-  orxU32         u32StringIndex;
-  orxU32         u32BankCellIndex;
-  orxLINKLIST   *pstMarkerStack;
+  orxU32                u32Index;
+  orxTEXT_MARKER_CELL   stHead;
+  orxFONT              *pstDefaultFont;
+  orxRGBA               stDefaultColor;
+  orxVECTOR             vDefaultScale;
+  orxLINKLIST           stMarkerStack;
 };
-
-/** Gets appropriate marker handle for given string position
- * @param[in]   _hIterator      Iterator from previous search or orxHANDLE_UNDEFINED/orxNULL for a new search
- * @param[in]   _u32StringIndex Position in string to find appropriate marker handle for
- * @return Iterator for appropriate marker, orxHANDLE_UNDEFINED otherwise
- */
-const orxHANDLE orxFASTCALL orxText_GetMarker(const orxHANDLE _hIterator, orxU32 _u32StringIndex)
-{
-  return orxHANDLE_UNDEFINED;
-}
-const orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(const orxHANDLE _hIterator)
-{
-  return orxTEXT_MARKER_TYPE_NONE;
-}
-const orxFONT* orxFASTCALL orxText_GetMarkerFont(const orxHANDLE _hIterator)
-{
-  return orxNULL;
-}
-const orxRGBA orxFASTCALL orxText_GetMarkerColor(const orxHANDLE _hIterator)
-{
-  return orx2RGBA(255, 255, 255, 255);
-}
-const orxVECTOR orxFASTCALL orxText_GetMarkerScale(const orxHANDLE _hIterator)
-{
-  return orxVECTOR_1;
-}
 
 /** Text structure
  */
@@ -346,13 +322,13 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Allocate a marker and style */
-    orxTEXT_MARKER_DATA *pstStyle = (orxTEXT_MARKER_DATA *) orxBank_Allocate(_pstText->pstMarkerDatas);
-    orxASSERT(pstStyle != orxNULL);
-    pstStyle->eType = eType;
+    orxTEXT_MARKER_DATA *pstData = (orxTEXT_MARKER_DATA *) orxBank_Allocate(_pstText->pstMarkerDatas);
+    orxASSERT(pstData != orxNULL);
+    pstData->eType = eType;
     orxTEXT_MARKER_CELL *pstMarker = (orxTEXT_MARKER_CELL *) orxBank_Allocate(_pstText->pstMarkerCells);
     orxASSERT(pstMarker != orxNULL);
     pstMarker->u32Index = u32CleanedLength;
-    pstMarker->pstStyle = pstStyle;
+    pstMarker->pstData = pstData;
 
     /* Pops can be stored immediately since they have no value in their style*/
     if (eType == orxTEXT_MARKER_TYPE_POP) {
@@ -392,7 +368,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       }
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
-      pstStyle->pstFont = pstFont;
+      pstData->pstFont = pstFont;
     }
     else if (eType == orxTEXT_MARKER_TYPE_COLOR)
     {
@@ -405,7 +381,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         orxVector_Set(&vColor, 1, 1, 1);
       }
       orxCOLOR stColor = {vColor, 1.0f};
-      pstStyle->stRGBA = orxColor_ToRGBA(&stColor);
+      pstData->stRGBA = orxColor_ToRGBA(&stColor);
     }
     else
     {
@@ -1162,4 +1138,39 @@ orxSTATUS orxFASTCALL orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont)
 
   /* Done! */
   return eResult;
+}
+
+const orxHANDLE orxFASTCALL orxText_GetMarkerWalker(const orxTEXT *_pstText, orxTEXT_MARKER_WALKER *_pstWalker)
+{
+  orxBANK *pstBank = _pstText->pstMarkerCells;
+  orxTEXT_MARKER_CELL *pstCell = (orxTEXT_MARKER_CELL *) orxBank_GetAtIndex(pstBank, 0);
+  orxMemory_Zero(_pstWalker, sizeof(orxTEXT_MARKER_WALKER));
+  _pstWalker->u32Index = 0;
+  _pstWalker->stHead = {0, orxNULL};
+  _pstWalker->pstDefaultFont = orxText_GetFont(_pstText);
+  return (orxHANDLE) _pstWalker;
+}
+
+const orxHANDLE orxFASTCALL orxText_WalkMarkers(const orxHANDLE _hIterator)
+{
+  orxTEXT_MARKER_WALKER *pstWalker = (orxTEXT_MARKER_WALKER *) _hIterator;
+  orxHANDLE hResult = orxHANDLE_UNDEFINED;
+  return hResult;
+}
+
+const orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(const orxHANDLE _hIterator)
+{
+  return orxTEXT_MARKER_TYPE_NONE;
+}
+const orxFONT* orxFASTCALL orxText_GetMarkerFont(const orxHANDLE _hIterator)
+{
+  return orxNULL;
+}
+const orxRGBA orxFASTCALL orxText_GetMarkerColor(const orxHANDLE _hIterator)
+{
+  return orx2RGBA(255, 255, 255, 255);
+}
+const orxVECTOR orxFASTCALL orxText_GetMarkerScale(const orxHANDLE _hIterator)
+{
+  return orxVECTOR_1;
 }
