@@ -41,6 +41,12 @@
 #include "object/orxStructure.h"
 #include "utils/orxHashTable.h"
 
+#ifdef __orxMSVC__
+
+#include <malloc.h>
+#pragma warning(disable : 4200)
+
+#endif /* __orxMSVC__ */
 
 /** Module flags
  */
@@ -359,8 +365,17 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* Make a temporary string to hold the value alone */
     orxU32 u32StyleStringValueSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
-    orxSTRING zTempValue = (orxSTRING) orxMemory_Allocate(u32StyleStringValueSize, orxMEMORY_TYPE_MAIN);
-    orxASSERT(zTempValue != orxNULL);
+
+#ifdef __orxMSVC__
+
+    orxCHAR *zTempValue = (orxCHAR *)alloca(u32StyleStringValueSize * sizeof(orxCHAR));
+
+#else /* __orxMSVC__ */
+
+    orxCHAR zTempValue[u32StyleStringValueSize];
+
+#endif /* __orxMSVC__ */
+
     orxString_NCopy(zTempValue, zNextToken, u32StyleStringValueSize);
     zTempValue[u32StyleStringValueSize-1] = orxCHAR_NULL;
     /* TODO: Maybe avoid allocating new memory for this? Could terminate/unterminate zNextToken instead. */
@@ -371,7 +386,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     {
       /* Attempt to store font style */
       const orxFONT *pstFont = orxFont_CreateFromConfig(zTempValue);
-      orxMemory_Free(zTempValue); /* We don't need this anymore */
       /* EDGE CASE: Handle invalid/missing font */
       if (pstFont == orxNULL)
       {
@@ -391,7 +405,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
         orxVector_Set(&vColor, 1, 1, 1);
       }
-      orxMemory_Free(zTempValue); /* We don't need this anymore */
       orxCOLOR stColor = {vColor, 1.0f};
       pstStyle->stRGBA = orxColor_ToRGBA(&stColor);
     }
@@ -401,7 +414,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
       u32CleanedLength += u32StoreLength;
-      orxMemory_Free(zTempValue);
     }
     /* Move the marked string forward so we may continue */
     zMarkedString = zMarkerEnd + 1;
