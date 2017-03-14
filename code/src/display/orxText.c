@@ -364,28 +364,27 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     zNextToken = orxString_SkipWhiteSpaces(zNextToken + 1);
 
     /* Make a temporary string to hold the value alone */
-    orxU32 u32StyleStringValueSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
+    orxU32 u32ValueStringSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
 
 #ifdef __orxMSVC__
 
-    orxCHAR *zTempValue = (orxCHAR *)alloca(u32StyleStringValueSize * sizeof(orxCHAR));
+    orxCHAR *zValueString = (orxCHAR *)alloca(u32ValueStringSize * sizeof(orxCHAR));
 
 #else /* __orxMSVC__ */
 
-    orxCHAR zTempValue[u32StyleStringValueSize];
+    orxCHAR zValueString[u32ValueStringSize];
 
 #endif /* __orxMSVC__ */
 
-    orxString_NCopy(zTempValue, zNextToken, u32StyleStringValueSize);
-    zTempValue[u32StyleStringValueSize-1] = orxCHAR_NULL;
-    /* TODO: Maybe avoid allocating new memory for this? Could terminate/unterminate zNextToken instead. */
+    orxString_NCopy(zValueString, zNextToken, u32ValueStringSize);
+    zValueString[u32ValueStringSize - 1] = orxCHAR_NULL;
 
     /* Check style values */
 
     if (eType == orxTEXT_MARKER_TYPE_FONT)
     {
       /* Attempt to store font style */
-      const orxFONT *pstFont = orxFont_CreateFromConfig(zTempValue);
+      const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString);
       /* EDGE CASE: Handle invalid/missing font */
       if (pstFont == orxNULL)
       {
@@ -400,7 +399,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       /* Attempt to store color style */
       orxVECTOR vColor = {0};
       /* EDGE CASE: Handle invalid/missing color */
-      if (orxString_ToVector(zTempValue, &vColor, orxNULL) == orxSTATUS_FAILURE)
+      if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_FAILURE)
       {
         /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
         orxVector_Set(&vColor, 1, 1, 1);
