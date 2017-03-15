@@ -105,9 +105,9 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
         break;
       }
       case orxTEXT_MARKER_TYPE_POP:
-        hFallback = orxText_GetMarkerFallback(orxLinkList_GetLast(&stStack));
         if (orxLinkList_GetCounter(&stStack) > 0)
         {
+          hFallback = orxText_GetMarkerFallback(orxLinkList_GetLast(&stStack));
           orxLinkList_Remove(orxLinkList_GetLast(&stStack));
         }
         break;
