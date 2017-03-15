@@ -113,6 +113,7 @@ typedef struct __orxTEXT_MARKER_CELL_t
   orxU32                           u32Index;
   const orxTEXT_MARKER_DATA       *pstData;
   const struct __orxTEXT_MARKER_CELL_t   *pstNext;
+  const struct __orxTEXT_MARKER_CELL_t   *pstFallback;
 } orxTEXT_MARKER_CELL;
 
 typedef struct __orxTEXT_MARKER_STACK_ENTRY_t
@@ -169,76 +170,6 @@ static orxTEXT_STATIC sstText;
  * Private functions                                                       *
  ***************************************************************************/
 
-static orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
-{
-  orxTEXT_MARKER_CELL *pstCell;
-  orxHANDLE hResult;
-  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
-  {
-    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
-    hResult = (orxHANDLE) pstCell->pstNext;
-  }
-  else
-  {
-    hResult = orxHANDLE_UNDEFINED;
-  }
-  return hResult;
-}
-
-
-static void TestMarkerTraversal(orxTEXT *_pstText)
-{
-  const orxSTRING zString = orxText_GetString(_pstText);
-  orxLINKLIST stStack = {0};
-  orxHANDLE hIterator = orxText_GetMarkerIterator(_pstText);
-  orxHANDLE hMarker;
-  orxBOOL bNextMarkerAtSameIndex;
-  orxLOG("Testing markers for %s", zString);
-  for (orxU32 u32Index = 0; u32Index < orxString_GetLength(zString); u32Index++)
-  {
-    do
-    {
-      hIterator = orxText_WalkMarkers(hIterator, u32Index, &stStack, &hMarker, &bNextMarkerAtSameIndex);
-      if ((hMarker != orxHANDLE_UNDEFINED) && (hMarker != orxNULL))
-      {
-        orxU32 u32LastIndex = orxText_GetMarkerIndex(hMarker);
-        if (u32LastIndex != orxU32_UNDEFINED)
-        {
-          orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hMarker);
-          switch(eType)
-          {
-          case orxTEXT_MARKER_TYPE_NONE:
-          {
-            orxLOG("Current Marker @%u:%u [%s]", u32Index, u32LastIndex, "none");
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_COLOR:
-          {
-            orxRGBA stColor = orxText_GetMarkerColor(hMarker);
-            orxLOG("Current Marker @%u:%u [%s] (%u, %u, %u, %u)", u32Index, u32LastIndex, "color", stColor.u8R, stColor.u8G, stColor.u8B, stColor.u8A);
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_FONT:
-          {
-            const orxFONT *pstFont = orxText_GetMarkerFont(hMarker);
-            orxLOG("Current Marker @%u:%u [%s] %s", u32Index, u32LastIndex, "font", orxFont_GetName(pstFont));
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_SCALE:
-          {
-            orxVECTOR vScale = orxText_GetMarkerScale(hMarker);
-            orxLOG("Current Marker @%u:%u [%s] (%d, %d, %d)", u32Index, u32LastIndex, "scale", vScale.fX, vScale.fY, vScale.fZ);
-            break;
-          }
-          default:
-            orxLOG("Current Marker @%u:%u [%s]", u32Index, u32LastIndex, "unknown");
-          }
-        }
-      }
-    } while (bNextMarkerAtSameIndex);
-  }
-}
-
 /** Gets corresponding locale key
  * @param[in]   _pstText    Concerned text
  * @param[in]   _zProperty  Property to get
@@ -246,6 +177,7 @@ static void TestMarkerTraversal(orxTEXT *_pstText)
  */
 static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, const orxSTRING _zProperty)
 {
+
   const orxSTRING zResult = orxNULL;
 
   /* Checks */
@@ -287,6 +219,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   const orxSTRING zResult = orxNULL;
   orxSTRING zCleanedString = orxNULL;
   orxU32 u32CleanedSize, u32CleanedLength;
+  /* These are used for keeping track of marker fallbacks */
+  const orxTEXT_MARKER_CELL *pstPrevFont = orxNULL;
+  const orxTEXT_MARKER_CELL *pstPrevColor = orxNULL;
+  const orxTEXT_MARKER_CELL *pstPrevScale = orxNULL;
 
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkerCells);
@@ -306,7 +242,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxMemory_Zero(zCleanedString, u32CleanedSize * sizeof(orxCHAR));
 
   /* TODO: Implement escapes for markers? */
-  while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL)) {
+  while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
+  {
     orxU32 u32StoreLength = 0;
 
     /* Find next marker open */
@@ -402,6 +339,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     pstMarker->u32Index = u32CleanedLength;
     pstMarker->pstData = pstData;
     pstMarker->pstNext = orxNULL;
+    pstMarker->pstFallback = orxNULL;
 
     /* Update next marker for previously allocated marker */
     orxTEXT_MARKER_CELL *pstPrevMarker = orxBank_GetAtIndex(_pstText->pstMarkerCells, orxBank_GetIndex(_pstText->pstMarkerCells, pstMarker) - 1);
@@ -449,6 +387,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
       pstData->pstFont = pstFont;
+      pstMarker->pstFallback = pstPrevFont;
+      pstPrevFont = pstMarker;
     }
     else if (eType == orxTEXT_MARKER_TYPE_COLOR)
     {
@@ -462,6 +402,21 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       }
       orxCOLOR stColor = {vColor, 1.0f};
       pstData->stRGBA = orxColor_ToRGBA(&stColor);
+      pstMarker->pstFallback = pstPrevColor;
+      pstPrevColor = pstMarker;
+    }
+    else if (eType == orxTEXT_MARKER_TYPE_SCALE)
+    {
+      /* Attempt to store color style */
+      orxVECTOR vScale = {0};
+      /* EDGE CASE: Handle invalid/missing color */
+      if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_FAILURE)
+      {
+        vScale = orxVECTOR_1;
+      }
+      orxVector_Copy(&pstData->vScale, &vScale);
+      pstMarker->pstFallback = pstPrevScale;
+      pstPrevScale = pstMarker;
     }
     else
     {
@@ -1220,12 +1175,29 @@ orxSTATUS orxFASTCALL orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont)
   return eResult;
 }
 
+orxU32 orxFASTCALL orxText_GetMarkerCounter(orxTEXT *_pstText)
+{
+  return orxBank_GetCounter(_pstText->pstMarkerCells);
+}
+
 orxHANDLE orxFASTCALL orxText_GetMarkerIterator(orxTEXT *_pstText)
 {
+  orxTEXT_MARKER_CELL *pstCell;
   orxHANDLE hResult;
   if (_pstText != orxNULL)
   {
-    hResult = (orxHANDLE) orxBank_GetAtIndex(_pstText->pstMarkerCells, 0);
+    pstCell = (orxTEXT_MARKER_CELL *) orxBank_GetAtIndex(_pstText->pstMarkerCells, 0);
+    /* If this marker was added to a linklist, remove it from that list. */
+    if ((pstCell != orxNULL) && (pstCell->stNode.pstList != orxNULL))
+    {
+      /* This is a little nasty since it means you might be stealing the marker from a concurrent iteration.
+       * Concurrent iteration can be accomplished by making a custom marker node and iteracting with that instead.
+       * We use markers as list nodes directly so that we don't have to interact with the heap while rendering.
+       * TODO: Find a better solution for this. */
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Text Marker iterator for (%s) must be abnormally reset. Previously in use by another marker stack. Stealing iterator...", orxText_GetName(_pstText));
+      orxLinkList_Remove((orxLINKLIST_NODE *) pstCell);
+    }
+    hResult = (orxHANDLE) pstCell;
   }
   else
   {
@@ -1234,7 +1206,67 @@ orxHANDLE orxFASTCALL orxText_GetMarkerIterator(orxTEXT *_pstText)
   return hResult;
 }
 
-const orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator)
+orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxHANDLE hResult;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
+  {
+    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
+    /* If this marker was added to a linklist, remove it from that list. */
+    if ((pstCell->pstNext != orxNULL) && (pstCell->pstNext->stNode.pstList != orxNULL)) /* TODO: Does it make sense to check if previous node is null? */
+    {
+      /* TODO: Same deal as with orxText_GetMarkerIterator; there's probably a better solution */
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Text Marker was previously in use by another marker stack. Stealing...");
+      orxLinkList_Remove((orxLINKLIST_NODE *) pstCell->pstNext);
+    }
+    hResult = (orxHANDLE) pstCell->pstNext;
+  }
+  else
+  {
+    hResult = orxHANDLE_UNDEFINED;
+  }
+  return hResult;
+}
+
+/*
+orxSTATUS orxFASTCALL orxText_CheckMarkerValidity(orxHANDLE _hIterator)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
+  {
+    eResult = orxSTATUS_SUCCESS;
+  }
+  return eResult;
+}
+orxSTATUS orxFASTCALL orxText_CheckMarkerIndex(orxHANDLE _hIterator, orxU32 _u32Index)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
+  if ((orxText_ValidateMarker(_hIterator) == orxSTATUS_SUCCESS) && (orxText_GetMarkerIndex(_hIterator) == _u32Index))
+  {
+    eResult = orxSTATUS_SUCCESS;
+  }
+  return eResult;
+}
+orxSTATUS orxFASTCALL orxText_CheckMarkerStack(orxHANDLE _hIterator, orxLINKLIST *pstList)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
+  {
+    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
+    if (pstCell->pstNode->pstList == pstList || pstCell->pstNode->pstList == orxNULL)
+    {
+      eResult = orxSTATUS_SUCCESS;
+    }
+  }
+  return eResult;
+}
+*/
+
+orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
   orxTEXT_MARKER_TYPE eResult;
@@ -1257,76 +1289,67 @@ const orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator
   return eResult;
 }
 
-const orxFONT* orxFASTCALL orxText_GetMarkerFont(orxHANDLE _hIterator)
+orxSTATUS orxFASTCALL orxText_GetMarkerFont(orxHANDLE _hIterator, orxFONT const **_ppstFont)
 {
-  orxTEXT_MARKER_CELL *pstCell;
-  const orxFONT *pstResult;
+  orxTEXT_MARKER_CELL *pstCell = orxNULL;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
     if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_FONT))
     {
-      pstResult = pstCell->pstData->pstFont;
-    }
-    else
-    {
-      pstResult = orxNULL;
+      *_ppstFont = pstCell->pstData->pstFont;
+      eResult = orxSTATUS_SUCCESS;
     }
   }
   else
   {
-    pstResult = orxNULL;
+    *_ppstFont = orxNULL;
   }
-  return pstResult;
+  return eResult;
 }
 
-const orxRGBA orxFASTCALL orxText_GetMarkerColor(orxHANDLE _hIterator)
+orxSTATUS orxFASTCALL orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor)
 {
-  orxTEXT_MARKER_CELL *pstCell;
-  orxRGBA stResult;
+  orxTEXT_MARKER_CELL *pstCell = orxNULL;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
     if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_COLOR))
     {
-      stResult = pstCell->pstData->stRGBA;
-    }
-    else
-    {
-      stResult = orx2RGBA(255, 255, 255, 255);
+      *_pstColor = pstCell->pstData->stRGBA;
+      eResult = orxSTATUS_SUCCESS;
     }
   }
   else
   {
-    stResult = orx2RGBA(255, 255, 255, 255);
+    *_pstColor = orx2RGBA(255, 255, 255, 255);
   }
-  return stResult;
+  return eResult;
 }
 
-const orxVECTOR orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator)
+orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pstScale)
 {
-  orxTEXT_MARKER_CELL *pstCell;
-  orxVECTOR vResult;
+  orxTEXT_MARKER_CELL *pstCell = orxNULL;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
     if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_SCALE))
     {
-      vResult = pstCell->pstData->vScale;
-    }
-    else
-    {
-      vResult = orxVECTOR_1;
+      *_pstScale = pstCell->pstData->vScale;
+      eResult = orxSTATUS_SUCCESS;
     }
   }
   else
   {
-    vResult = orxVECTOR_1;
+    *_pstScale = orxVECTOR_1;
   }
-  return vResult;
+  return eResult;
 }
 
-const orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
+orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
   orxU32 u32Result;
@@ -1341,6 +1364,30 @@ const orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
   }
   return u32Result;
 }
+
+orxHANDLE orxFASTCALL orxText_GetMarkerFallback(orxHANDLE _hIterator)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxHANDLE hResult;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
+  {
+    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
+    hResult = (orxHANDLE) pstCell->pstFallback;
+  }
+  else
+  {
+    hResult = orxHANDLE_UNDEFINED;
+  }
+  return hResult;
+}
+
+/* typedef struct __orxTEXT_MARKER_WALKER_t */
+/* { */
+/*   orxU32 u32Index; */
+/*   orxBANK *pstNodes; */
+/*   orxLINKLIST stStack; */
+/*   orxHANDLE *pstMarker; */
+/* } orxTEXT_MARKER_WALKER; */
 
 orxHANDLE orxFASTCALL orxText_WalkMarkers(orxHANDLE _hIterator, orxU32 _u32Index, orxLINKLIST *_pstStack, orxHANDLE *_phMarker, orxBOOL *_pstHasAnother)
 {
@@ -1393,6 +1440,7 @@ orxHANDLE orxFASTCALL orxText_WalkMarkers(orxHANDLE _hIterator, orxU32 _u32Index
   {
     /* Iterator provided was invalid */
     hResult = orxHANDLE_UNDEFINED;
+    orxLinkList_Clean(_pstStack);
   }
   /* Update current marker */
   if (orxLinkList_GetCounter(_pstStack) != 0)
