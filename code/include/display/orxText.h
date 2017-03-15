@@ -140,7 +140,7 @@ extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetFont(orxTEXT *_pstText, orx
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerCounter(orxTEXT *_pstText);
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_GetMarkerIterator(orxTEXT *_pstText);
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_NextMarker(orxHANDLE _hIterator);
-extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_GetMarkerFallback(orxHANDLE _hIterator);
+extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_GetMarkerFallback(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType);
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerIndex(orxHANDLE _hIterator);
 extern orxDLLAPI orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator);
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerFont(orxHANDLE _hIterator,  orxFONT const **_ppstFont);

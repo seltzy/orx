@@ -55,18 +55,21 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
 {
   const orxSTRING zString = orxText_GetString(_pstText);
   orxLINKLIST stStack = {0};
-  orxHANDLE hMarker = orxNULL;
-  orxHANDLE hFallback = orxNULL;
+  orxHANDLE hMarker = orxHANDLE_UNDEFINED;
+  orxHANDLE hFallback = orxHANDLE_UNDEFINED;
+  orxTEXT_MARKER_TYPE eFallbackType = orxTEXT_MARKER_TYPE_NONE;
   orxHANDLE hIterator = orxText_GetMarkerIterator(_pstText);
   orxLOG("Testing markers for %s", zString);
   for (orxU32 u32Index = 0; u32Index < orxString_GetLength(zString); u32Index++)
   {
+    /* Process markers for this index */
     for (;
          (hIterator != orxNULL) && (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32Index) ;
          hIterator = orxText_NextMarker(hIterator))
     {
       orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hIterator);
       hFallback = orxNULL;
+      /* Update stack */
       switch(eType)
       {
       case orxTEXT_MARKER_TYPE_NONE:
@@ -107,7 +110,7 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
       case orxTEXT_MARKER_TYPE_POP:
         if (orxLinkList_GetCounter(&stStack) > 0)
         {
-          hFallback = orxText_GetMarkerFallback(orxLinkList_GetLast(&stStack));
+          hFallback = orxText_GetMarkerFallback(orxLinkList_GetLast(&stStack), &eFallbackType);
           orxLinkList_Remove(orxLinkList_GetLast(&stStack));
         }
         break;
@@ -118,8 +121,75 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
       default:
         orxLOG("Unknown marker @%u?", u32Index);
       }
+      /* If stack changes produced a fallback, look at what we're falling back to */
+      if ((hFallback != orxNULL) && (hFallback != orxHANDLE_UNDEFINED))
+      {
+        /* orxLOG("Marker fallback exists - applying changes..."); */
+        orxU32 u32LastMarkerIndex = orxText_GetMarkerIndex(hFallback);
+        eType = orxText_GetMarkerType(hFallback);
+        switch(eType)
+        {
+        case orxTEXT_MARKER_TYPE_COLOR:
+        {
+          orxRGBA stColor = {0};
+          if (orxText_GetMarkerColor(hFallback, &stColor) == orxSTATUS_SUCCESS)
+          {
+            orxLOG("Apply fallback %s Marker @%u (%u, %u, %u, %u)", "color", u32LastMarkerIndex, stColor.u8R, stColor.u8G, stColor.u8B, stColor.u8A);
+          }
+          break;
+        }
+        case orxTEXT_MARKER_TYPE_FONT:
+        {
+          const orxFONT *pstFont = orxNULL;
+          if (orxText_GetMarkerFont(hFallback, &pstFont) == orxSTATUS_SUCCESS)
+          {
+            orxLOG("Apply fallback %s Marker @%u %s", "font", u32LastMarkerIndex, orxFont_GetName(pstFont));
+          }
+          break;
+        }
+        case orxTEXT_MARKER_TYPE_SCALE:
+        {
+          orxVECTOR vScale = {0};
+          if (orxText_GetMarkerScale(hFallback, &vScale) == orxSTATUS_SUCCESS)
+          {
+            orxLOG("Apply fallback %s Marker @%u (%d, %d, %d)", "scale", u32LastMarkerIndex, vScale.fX, vScale.fY, vScale.fZ);
+          }
+          break;
+        }
+        default:
+          orxLOG("Invalid marker type @%u", u32LastMarkerIndex);
+        }
+      }
+      else
+      {
+        /* When is invalid, but gave a valid type when checking for fallbacks it means we have to fallback to whatever existed before the marker */
+        if (eFallbackType != orxTEXT_MARKER_TYPE_NONE)
+        {
+          orxLOG("Falling back to an original value...");
+          /* Fallback to whatever existed before the marker */
+          switch(eFallbackType)
+          {
+          case orxTEXT_MARKER_TYPE_COLOR:
+          {
+            orxLOG("Color fallback");
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_FONT:
+          {
+            orxLOG("Font fallback");
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_SCALE:
+          {
+            orxLOG("Scale fallback");
+            break;
+          }
+          }
+        }
+      }
+      /* Look at what's on top of the stack as a result of stack changes. */
       hMarker = orxLinkList_GetLast(&stStack);
-      if ((hMarker != orxNULL) && (hMarker != orxHANDLE_UNDEFINED))
+      if ((hMarker != hFallback) && (hMarker != orxNULL) && (hMarker != orxHANDLE_UNDEFINED))
       {
         /* orxLOG("Marker is in use"); */
         orxU32 u32LastMarkerIndex = orxText_GetMarkerIndex(hMarker);
@@ -155,44 +225,6 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
         }
         default:
           orxLOG("Invalid marker type @%u", u32LastMarkerIndex);
-        }
-        if ((hFallback != orxNULL) && (hFallback != orxHANDLE_UNDEFINED))
-        {
-          /* orxLOG("Marker fallback exists - applying changes..."); */
-          orxU32 u32LastMarkerIndex = orxText_GetMarkerIndex(hFallback);
-          eType = orxText_GetMarkerType(hFallback);
-          switch(eType)
-          {
-          case orxTEXT_MARKER_TYPE_COLOR:
-          {
-            orxRGBA stColor = {0};
-            if (orxText_GetMarkerColor(hFallback, &stColor) == orxSTATUS_SUCCESS)
-            {
-              orxLOG("Apply fallback %s Marker @%u (%u, %u, %u, %u)", "color", u32LastMarkerIndex, stColor.u8R, stColor.u8G, stColor.u8B, stColor.u8A);
-            }
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_FONT:
-          {
-            const orxFONT *pstFont = orxNULL;
-            if (orxText_GetMarkerFont(hFallback, &pstFont) == orxSTATUS_SUCCESS)
-            {
-              orxLOG("Apply fallback %s Marker @%u %s", "font", u32LastMarkerIndex, orxFont_GetName(pstFont));
-            }
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_SCALE:
-          {
-            orxVECTOR vScale = {0};
-            if (orxText_GetMarkerScale(hFallback, &vScale) == orxSTATUS_SUCCESS)
-            {
-              orxLOG("Apply fallback %s Marker @%u (%d, %d, %d)", "scale", u32LastMarkerIndex, vScale.fX, vScale.fY, vScale.fZ);
-            }
-            break;
-          }
-          default:
-            orxLOG("Invalid marker type @%u", u32LastMarkerIndex);
-          }
         }
       }
     }

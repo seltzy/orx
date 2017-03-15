@@ -1365,18 +1365,29 @@ orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
   return u32Result;
 }
 
-orxHANDLE orxFASTCALL orxText_GetMarkerFallback(orxHANDLE _hIterator)
+orxHANDLE orxFASTCALL orxText_GetMarkerFallback(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType)
 {
-  orxTEXT_MARKER_CELL *pstCell;
+  const orxTEXT_MARKER_CELL *pstCell;
+  const orxTEXT_MARKER_CELL *pstFallback;
   orxHANDLE hResult;
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
-    hResult = (orxHANDLE) pstCell->pstFallback;
+    pstFallback = pstCell->pstFallback;
+    if (pstFallback != orxNULL)
+    {
+      *_peType = orxText_GetMarkerType((orxHANDLE) pstCell->pstFallback);
+    }
+    else
+    {
+      *_peType = orxText_GetMarkerType((orxHANDLE) pstCell);
+    }
+    hResult = (orxHANDLE) pstFallback;
   }
   else
   {
     hResult = orxHANDLE_UNDEFINED;
+    *_peType = orxTEXT_MARKER_TYPE_NONE;
   }
   return hResult;
 }
