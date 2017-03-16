@@ -102,6 +102,7 @@ typedef struct __orxTEXT_MARKER_DATA_t
     const orxFONT       *pstFont;
     orxRGBA              stRGBA;
     orxVECTOR            vScale;
+    orxTEXT_MARKER_TYPE  eRevertType;
   };
 } orxTEXT_MARKER_DATA;
 
@@ -209,15 +210,14 @@ static void orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName,
   orxASSERT((_zCheckTypeName != orxNULL) && (_zCheckTypeName != orxSTRING_EMPTY) && (*_zCheckTypeName != orxCHAR_NULL));
   orxASSERT((_zAtString != orxNULL) && (_zAtString != orxSTRING_EMPTY) && (*_zAtString != orxCHAR_NULL)) ;
   orxASSERT(_pzNextToken != orxNULL);
-  orxASSERT((*_pzNextToken != orxNULL) && (*_pzNextToken != orxSTRING_EMPTY) && (**_pzNextToken != orxCHAR_NULL));
+  *_peType = orxTEXT_MARKER_TYPE_NONE;
+  *_pzNextToken = orxSTRING_EMPTY;
   /* See _zCheckTypeName matches the start of _zAtString */
   orxU32 u32TypeLength = orxString_GetLength(_zCheckTypeName);
   if (orxString_NCompare(_zAtString, _zCheckTypeName, u32TypeLength) == 0) {
     /* Update the next token to be the end of the type name in _zAtString */
     *_pzNextToken = orxString_SkipWhiteSpaces(_zAtString + u32TypeLength);
-    if (**_pzNextToken == orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-      *_peType = eResultType;
-    }
+    *_peType = eResultType;
   }
 }
 
@@ -290,15 +290,37 @@ static void orxFASTCALL orxText_PopMarker(const orxTEXT *_pstText, orxU32 _u32In
   orxASSERT(_u32Index != orxU32_UNDEFINED);
   orxASSERT(_ppstFallbackData != orxNULL);
   orxASSERT(_pstStack != orxNULL);
+  orxASSERT(orxLinkList_GetCounter(_pstStack) > 0);
 
   /* Pop the stack */
   orxTEXT_MARKER_STACK_ENTRY *pstPoppedEntry = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(_pstStack);
   orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
-  const orxTEXT_MARKER_DATA *pstData = pstPoppedEntry->pstFallbackData;
-  /* Add a new marker with the fallback data of the popped marker */
-  orxText_AddMarkerCell(_pstText, _u32Index, pstData);
-  /* Update the processor's fallback data to be the newly added marker's data (i.e. popped marker's fallback data) */
-  *_ppstFallbackData = pstData;
+  orxASSERT(pstPoppedEntry != orxNULL);
+
+  /* The fallback data of the popped entry will serve as the data for a new marker */
+  const orxTEXT_MARKER_DATA *pstFallbackData = pstPoppedEntry->pstFallbackData;
+  /* If that fallback data is null, it means we're reverting to a default value. */
+  if (pstFallbackData == orxNULL)
+  {
+    /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
+    if (pstPoppedEntry->pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
+    {
+      /* The popped entry was already a revert? Someone isn't keeping track of how much they clear/pop the stack. */
+      pstFallbackData = pstPoppedEntry->pstData;
+    }
+    else
+    {
+      /* Allocate a new revert */
+      orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_REVERT);
+      pstData->eRevertType = pstPoppedEntry->pstData->eType;
+      pstFallbackData = pstData;
+    }
+  }
+  /* Add a new marker using fallback data */
+  orxText_AddMarkerCell(_pstText, _u32Index, pstFallbackData);
+  /* Update the processors fallback data to be the newly added marker's data */
+  /* This is either the popped marker's fallback data, or a placeholder for the user to interpret */
+  *_ppstFallbackData = pstFallbackData;
 }
 
 static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
@@ -411,7 +433,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
       orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_POP, orxTEXT_MARKER_TYPE_POP, zMarkerTypeStart, &eType, &zNextToken);
-      /* CLEAR doesn't have an assignment operator */
+      /* POP doesn't have an assignment operator */
       if (zNextToken != zMarkerEnd) {
         eType = orxTEXT_MARKER_TYPE_NONE;
       }
@@ -426,8 +448,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       zMarkedString = zMarkerEnd + 1;
       continue;
     }
-
-    orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, eType);
 
     /* Clear (i.e. pop everything) */
     if (eType == orxTEXT_MARKER_TYPE_CLEAR) {
@@ -460,9 +480,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxLinkList_Clean(&stDryRunStack);
       orxBank_Clear(pstDryRunBank);
       /* Let's see if this cleared out properly */
-      orxASSERT(pstPrevColor == orxNULL);
-      orxASSERT(pstPrevFont == orxNULL);
-      orxASSERT(pstPrevScale == orxNULL);
+      orxASSERT(pstPrevColor != orxNULL || pstPrevColor->eType == orxTEXT_MARKER_TYPE_REVERT);
+      orxASSERT(pstPrevFont != orxNULL || pstPrevFont->eType == orxTEXT_MARKER_TYPE_REVERT);
+      orxASSERT(pstPrevScale == orxNULL || pstPrevScale->eType == orxTEXT_MARKER_TYPE_REVERT);
       continue;
     }
 
@@ -498,7 +518,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       continue;
     }
 
-    /* Not a pop or clear, so continue to populating pstData */
+    /* Not a pop or clear, so let's create some new data! */
+    orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, eType);
 
     /* Skip to the value */
     zNextToken = orxString_SkipWhiteSpaces(zNextToken + 1);
@@ -1456,70 +1477,22 @@ orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
   return u32Result;
 }
 
-orxHANDLE orxFASTCALL orxText_WalkMarkers(orxHANDLE _hIterator, orxU32 _u32Index, orxLINKLIST *_pstStack, orxHANDLE *_phMarker, orxBOOL *_pstHasAnother)
+orxSTATUS orxFASTCALL orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType)
 {
-  orxHANDLE hResult;
-  /* Valid iterator? */
-  if ((_hIterator != orxHANDLE_UNDEFINED) && (_hIterator != orxNULL) && (_u32Index != orxU32_UNDEFINED))
+  orxTEXT_MARKER_CELL *pstCell = orxNULL;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
-    /* New marker? */
-    if (orxText_GetMarkerIndex(_hIterator) == _u32Index)
+    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
+    if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_REVERT))
     {
-      orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(_hIterator);
-      switch(eType)
-      {
-      /* Stack pushes */
-      case orxTEXT_MARKER_TYPE_COLOR:
-      case orxTEXT_MARKER_TYPE_FONT:
-      case orxTEXT_MARKER_TYPE_SCALE:
-      {
-        orxLinkList_AddEnd(_pstStack, (orxLINKLIST_NODE *) _hIterator);
-        break;
-      }
-      /* Stack pop */
-      case orxTEXT_MARKER_TYPE_POP:
-      {
-        orxLinkList_Remove(orxLinkList_GetLast(_pstStack));
-        break;
-      }
-      /* Stack clear */
-      case orxTEXT_MARKER_TYPE_CLEAR:
-      {
-        orxLinkList_Clean(_pstStack);
-        break;
-      }
-      /* Invalid types */
-      case orxTEXT_MARKER_TYPE_NONE:
-      default:
-        break;
-      }
-
-      /* Move iterator forward */
-      hResult = orxText_NextMarker(_hIterator);
-    }
-    else
-    {
-      /* Keep iterator same */
-      hResult = _hIterator;
+      *_peType = pstCell->pstData->eRevertType;
+      eResult = orxSTATUS_SUCCESS;
     }
   }
   else
   {
-    /* Iterator provided was invalid */
-    hResult = orxHANDLE_UNDEFINED;
-    orxLinkList_Clean(_pstStack);
+    *_peType = orxTEXT_MARKER_TYPE_NONE;
   }
-  /* Update current marker */
-  if (orxLinkList_GetCounter(_pstStack) != 0)
-  {
-    *_phMarker = (orxHANDLE) orxLinkList_GetLast(_pstStack);
-  }
-  else
-  {
-    *_phMarker = orxHANDLE_UNDEFINED;
-  }
-  *_pstHasAnother = ( (hResult != orxHANDLE_UNDEFINED) &&
-                      (hResult != orxNULL) &&
-                      (orxText_GetMarkerIndex(hResult) == _u32Index) );
-  return hResult;
+  return eResult;
 }
