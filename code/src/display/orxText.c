@@ -76,7 +76,9 @@
 #define orxTEXT_KC_MARKER_SYNTAX_ASSIGN       '='
 #define orxTEXT_KZ_MARKER_TYPE_FONT           "font"
 #define orxTEXT_KZ_MARKER_TYPE_COLOR          "col"
+#define orxTEXT_KZ_MARKER_TYPE_SCALE          "scale"
 #define orxTEXT_KZ_MARKER_TYPE_POP            "!"
+#define orxTEXT_KZ_MARKER_TYPE_CLEAR          "*"
 /* TODO: Implement a clear-all-styles marker */
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
@@ -213,16 +215,40 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
   return zResult;
 }
 
+static void orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName, orxTEXT_MARKER_TYPE eResultType, const orxSTRING _zAtString, orxTEXT_MARKER_TYPE *_peType, const orxSTRING *_pzNextToken)
+{
+  /* No bad input allowed! */
+  orxASSERT(_peType != orxNULL);
+  orxASSERT((_zCheckTypeName != orxNULL) && (_zCheckTypeName != orxSTRING_EMPTY) && (*_zCheckTypeName != orxCHAR_NULL));
+  orxASSERT((_zAtString != orxNULL) && (_zAtString != orxSTRING_EMPTY) && (*_zAtString != orxCHAR_NULL)) ;
+  orxASSERT((_pzNextToken != orxNULL) && (_pzNextToken != orxSTRING_EMPTY));
+  orxASSERT((*_pzNextToken != orxNULL) && (*_pzNextToken != orxSTRING_EMPTY) && (**_pzNextToken != orxCHAR_NULL));
+  /* See _zCheckTypeName matches the start of _zAtString */
+  orxU32 u32TypeLength = orxString_GetLength(_zCheckTypeName);
+  if (orxString_NCompare(_zAtString, _zCheckTypeName, u32TypeLength) == 0) {
+    /* Update the next token to be the end of the type name in _zAtString */
+    *_pzNextToken = orxString_SkipWhiteSpaces(_zAtString + u32TypeLength);
+    if (**_pzNextToken == orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
+      *_peType = eResultType;
+    }
+  }
+}
+
 static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
 {
   const orxSTRING zMarkedString = orxNULL;
-  const orxSTRING zResult = orxNULL;
-  orxSTRING zCleanedString = orxNULL;
-  orxU32 u32CleanedSize, u32CleanedLength;
-  /* These are used for keeping track of marker fallbacks */
-  const orxTEXT_MARKER_CELL *pstPrevFont = orxNULL;
-  const orxTEXT_MARKER_CELL *pstPrevColor = orxNULL;
-  const orxTEXT_MARKER_CELL *pstPrevScale = orxNULL;
+  const orxSTRING zResult       = orxNULL;
+  orxSTRING zCleanedString      = orxNULL;
+  orxU32 u32CleanedSize = 0, u32CleanedLength = 0;
+
+  /* These are used for keeping track of marker type fallbacks */
+  const orxTEXT_MARKER_DATA *pstPrevFont  = orxNULL;
+  const orxTEXT_MARKER_DATA *pstPrevColor = orxNULL;
+  const orxTEXT_MARKER_DATA *pstPrevScale = orxNULL;
+
+  /* Used for a dry run of marker traversal */
+  orxBANK      *pstDryRunBank = orxNULL;
+  orxLINKLIST   stDryRunStack = {0};
 
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkerCells);
@@ -285,39 +311,36 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* TODO: Reduce duplicate code here */
 
-    /* Check for font */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_MARKER_TYPE_FONT;
-      u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
-        if (*zNextToken == orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-          eType = orxTEXT_MARKER_TYPE_FONT;
-        }
+      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_FONT, orxTEXT_MARKER_TYPE_FONT, zMarkerTypeStart, &eType, &zNextToken);
+      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
+        eType = orxTEXT_MARKER_TYPE_NONE;
       }
     }
-    /* Check for color */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_MARKER_TYPE_COLOR;
-      u32TypeLength = orxString_GetLength(zTestMarkerType);
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
-        if (*zNextToken == orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-          eType = orxTEXT_MARKER_TYPE_COLOR;
-        }
+      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_COLOR, orxTEXT_MARKER_TYPE_COLOR, zMarkerTypeStart, &eType, &zNextToken);
+      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
+        eType = orxTEXT_MARKER_TYPE_NONE;
       }
     }
-    /* Check for pop */
     if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      zTestMarkerType = orxTEXT_KZ_MARKER_TYPE_POP;
-      u32TypeLength = orxString_GetLength(zTestMarkerType);
-      /* TODO: Perhaps make it so mulitple orxTEXT_KZ_STYLE_TYPE_POPs in a row represent multiple pops */
-      if (orxString_NCompare(zMarkerTypeStart, zTestMarkerType, u32TypeLength) == 0) {
-        zNextToken = orxString_SkipWhiteSpaces(zMarkerTypeStart + u32TypeLength);
-        /* POP is unique in that it doesn't have an assignment operator */
-        if (zNextToken == zMarkerEnd) {
-          eType = orxTEXT_MARKER_TYPE_POP;
-        }
+      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_SCALE, orxTEXT_MARKER_TYPE_SCALE, zMarkerTypeStart, &eType, &zNextToken);
+      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
+        eType = orxTEXT_MARKER_TYPE_NONE;
+      }
+    }
+    if (eType == orxTEXT_MARKER_TYPE_NONE) {
+      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_CLEAR, orxTEXT_MARKER_TYPE_CLEAR, zMarkerTypeStart, &eType, &zNextToken);
+      /* CLEAR doesn't have an assignment operator */
+      if (zNextToken != zMarkerEnd) {
+        eType = orxTEXT_MARKER_TYPE_NONE;
+      }
+    }
+    if (eType == orxTEXT_MARKER_TYPE_NONE) {
+      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_POP, orxTEXT_MARKER_TYPE_POP, zMarkerTypeStart, &eType, &zNextToken);
+      /* CLEAR doesn't have an assignment operator */
+      if (zNextToken != zMarkerEnd) {
+        eType = orxTEXT_MARKER_TYPE_NONE;
       }
     }
 
