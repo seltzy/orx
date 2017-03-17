@@ -222,6 +222,30 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
   return eResult;
 }
 
+static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetFallbackPointer(orxTEXT_MARKER_TYPE eType, const orxTEXT_MARKER_DATA **_ppstColor, const orxTEXT_MARKER_DATA **_ppstFont, const orxTEXT_MARKER_DATA **_ppstScale)
+{
+  orxASSERT(_ppstColor != orxNULL);
+  orxASSERT(_ppstFont != orxNULL);
+  orxASSERT(_ppstScale != orxNULL);
+  /* Get a pointer to the appropriate fallback data */
+  const orxTEXT_MARKER_DATA **ppstResult = orxNULL;
+  switch(eType)
+  {
+  case orxTEXT_MARKER_TYPE_COLOR:
+    ppstResult = _ppstColor;
+    break;
+  case orxTEXT_MARKER_TYPE_FONT:
+    ppstResult = _ppstFont;
+    break;
+  case orxTEXT_MARKER_TYPE_SCALE:
+    ppstResult = _ppstScale;
+    break;
+  default:
+    ppstResult = orxNULL;
+  }
+  return ppstResult;
+}
+
 static orxTEXT_MARKER_DATA *orxFASTCALL orxText_CreateMarkerData(const orxTEXT *_pstText, orxTEXT_MARKER_TYPE _eType)
 {
   orxASSERT(_pstText != orxNULL);
@@ -463,23 +487,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(&stDryRunStack);
         orxTEXT_MARKER_TYPE eTopType = pstTop->pstData->eType;
         /* Get a pointer to the appropriate fallback data */
-        const orxTEXT_MARKER_DATA *pstFallbackData = orxNULL;
-        switch(eTopType)
-        {
-        case orxTEXT_MARKER_TYPE_COLOR:
-          pstFallbackData = pstPrevColor;
-          break;
-        case orxTEXT_MARKER_TYPE_FONT:
-          pstFallbackData = pstPrevFont;
-          break;
-        case orxTEXT_MARKER_TYPE_SCALE:
-          pstFallbackData = pstPrevScale;
-          break;
-        default:
-          pstFallbackData = orxNULL;
-        }
+        const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
+        ppstFallbackData = orxText_GetFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
         /* Pop the stack, updating what pstFallbackData points to */
-        orxText_PopMarker(_pstText, u32CleanedLength, &pstFallbackData, &stDryRunStack);
+        orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
       }
       orxLinkList_Clean(&stDryRunStack);
       orxBank_Clear(pstDryRunBank);
@@ -502,23 +513,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(&stDryRunStack);
       orxTEXT_MARKER_TYPE eTopType = pstTop->pstData->eType;
       /* Get a pointer to the appropriate fallback data */
-      const orxTEXT_MARKER_DATA *pstFallbackData = orxNULL;
-      switch(eTopType)
-      {
-      case orxTEXT_MARKER_TYPE_COLOR:
-        pstFallbackData = pstPrevColor;
-        break;
-      case orxTEXT_MARKER_TYPE_FONT:
-        pstFallbackData = pstPrevFont;
-        break;
-      case orxTEXT_MARKER_TYPE_SCALE:
-        pstFallbackData = pstPrevScale;
-        break;
-      default:
-        pstFallbackData = orxNULL;
-      }
+      const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
+      ppstFallbackData = orxText_GetFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
       /* Pop the stack, updating what pstFallbackData points to */
-      orxText_PopMarker(_pstText, u32CleanedLength, &pstFallbackData, &stDryRunStack);
+      orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
       continue;
     }
 
