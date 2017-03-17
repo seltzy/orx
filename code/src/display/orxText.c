@@ -345,7 +345,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   const orxSTRING zMarkedString = orxNULL;
   const orxSTRING zResult       = orxNULL;
   orxSTRING zCleanedString      = orxNULL;
-  orxU32 u32CleanedSize = 0, u32CleanedLength = 0;
+  orxU32 u32CleanedSize = 0, u32CleanedSizeUsed = 0;
 
   /* These are used for keeping track of marker type fallbacks */
   const orxTEXT_MARKER_DATA *pstPrevFont  = orxNULL;
@@ -370,7 +370,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
   zMarkedString    = _zString;
   u32CleanedSize   = orxString_GetLength(zMarkedString) + 1;
-  u32CleanedLength = 0;
+  u32CleanedSizeUsed = 0;
 
   zCleanedString   = (orxSTRING) orxMemory_Allocate(u32CleanedSize * sizeof(orxCHAR), orxMEMORY_TYPE_MAIN);
   orxASSERT(zCleanedString != orxNULL);
@@ -382,24 +382,24 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* TODO: Implement escapes for markers? */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
   {
-    orxU32 u32StoreLength = 0;
+    orxU32 u32StoreSize = 0;
 
     /* Find next marker open */
     const orxSTRING zMarkerStart = orxString_SearchChar(zMarkedString, orxTEXT_KC_MARKER_SYNTAX_OPEN);
     /* If not found, store remainder of string as clean text and break */
     if (zMarkerStart == orxNULL) {
-      u32StoreLength = u32CleanedSize - u32CleanedLength;
-      orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
-      u32CleanedLength += u32StoreLength;
+      u32StoreSize = u32CleanedSize - u32CleanedSizeUsed;
+      orxString_NCopy(zCleanedString + u32CleanedSizeUsed, zMarkedString, u32StoreSize);
+      u32CleanedSizeUsed += u32StoreSize;
       break;
     }
 
     /* Looks like we might have a marker! */
 
     /* Store preceeding unstored text as clean text */
-    u32StoreLength = (orxU32) (zMarkerStart - zMarkedString);
-    orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
-    u32CleanedLength += u32StoreLength;
+    u32StoreSize = (orxU32) (zMarkerStart - zMarkedString);
+    orxString_NCopy(zCleanedString + u32CleanedSizeUsed, zMarkedString, u32StoreSize);
+    u32CleanedSizeUsed += u32StoreSize;
     /* Move marked string forward */
     zMarkedString = zMarkerStart;
 
@@ -407,9 +407,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     const orxSTRING zMarkerEnd = orxString_SearchChar(zMarkedString, orxTEXT_KC_MARKER_SYNTAX_CLOSE);
     /* If not found, store remainder of string as clean text and break */
     if (zMarkerEnd == orxNULL) {
-      u32StoreLength = u32CleanedSize - u32CleanedLength;
-      orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
-      u32CleanedLength += u32StoreLength;
+      u32StoreSize = u32CleanedSize - u32CleanedSizeUsed;
+      orxString_NCopy(zCleanedString + u32CleanedSizeUsed, zMarkedString, u32StoreSize);
+      u32CleanedSizeUsed += u32StoreSize;
       break;
     }
 
@@ -479,11 +479,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* If marker type is invalid, store marker as clean text, move marked string forward and continue */
     if (eType == orxTEXT_MARKER_TYPE_NONE)
     {
-      u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString + 1);
-      orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
-      u32CleanedLength += u32StoreLength;
+      u32StoreSize = (orxU32) (zMarkerEnd - zMarkedString + 1);
+      orxString_NCopy(zCleanedString + u32CleanedSizeUsed, zMarkedString, u32StoreSize);
+      u32CleanedSizeUsed += u32StoreSize;
       zMarkedString = zMarkerEnd + 1;
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Invalid marker: %s", zCleanedString + (u32CleanedLength - u32StoreLength));
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Invalid marker: %s", zCleanedString + (u32CleanedSizeUsed - u32StoreSize));
       continue;
     }
 
@@ -501,7 +501,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
         ppstFallbackData = orxText_GetMarkerFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
         /* Pop the stack, updating what pstFallbackData points to */
-        orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
+        orxText_PopMarker(_pstText, u32CleanedSizeUsed, ppstFallbackData, &stDryRunStack);
       }
       orxLinkList_Clean(&stDryRunStack);
       orxBank_Clear(pstDryRunBank);
@@ -528,7 +528,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
       ppstFallbackData = orxText_GetMarkerFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
       /* Pop the stack, updating what pstFallbackData points to */
-      orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
+      orxText_PopMarker(_pstText, u32CleanedSizeUsed, ppstFallbackData, &stDryRunStack);
       continue;
     }
 
@@ -604,9 +604,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
     default:
       /* Well this wasn't expected. Store marker as clean text, move marked string forward, and continue */
-      u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
-      orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
-      u32CleanedLength += u32StoreLength;
+      u32StoreSize = (orxU32) (zMarkerEnd - zMarkedString);
+      orxString_NCopy(zCleanedString + u32CleanedSizeUsed, zMarkedString, u32StoreSize);
+      u32CleanedSizeUsed += u32StoreSize;
     }
 
     /* Add/Push marker */
@@ -615,7 +615,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       /* Push data to stack with fallback data */
       orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallbackData);
       /* Add a marker cell (implicitly represents final traversal order )*/
-      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedLength, pstData);
+      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData);
       /* Update the fallback data pointer */
       *ppstFallbackData = pstData;
     }
@@ -628,7 +628,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxBank_Delete(pstDryRunBank);
 
   /* Terminate cleaned string - just to be safe */
-  zCleanedString[u32CleanedLength - 1] = orxCHAR_NULL;
+  zCleanedString[u32CleanedSizeUsed - 1] = orxCHAR_NULL;
 
   /* Has new string? */
   if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
