@@ -205,7 +205,6 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
 
 static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName, const orxSTRING _zMarkerText, const orxSTRING *_pzNextToken)
 {
-  /* No bad input allowed! */
   orxASSERT((_zCheckTypeName != orxNULL) && (_zCheckTypeName != orxSTRING_EMPTY) && (*_zCheckTypeName != orxCHAR_NULL));
   orxASSERT((_zMarkerText != orxNULL) && (_zMarkerText != orxSTRING_EMPTY) && (*_zMarkerText != orxCHAR_NULL)) ;
   orxASSERT(_pzNextToken != orxNULL);
@@ -222,6 +221,11 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
   return eResult;
 }
 
+/** Checks the type and returns a pointer to the appropriate fallback data pointer.
+ *  This is used to manage marker processing state when pushing/popping marker stack entries.
+ *  When a stack entry is pushed, its data becomes the fallback data for the next pushed marker of its type.
+ *  When a stack entry is popped, its fallback data is added as a new marker (which makes its data the new current fallback of that type).
+ */
 static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetFallbackPointer(orxTEXT_MARKER_TYPE eType, const orxTEXT_MARKER_DATA **_ppstColor, const orxTEXT_MARKER_DATA **_ppstFont, const orxTEXT_MARKER_DATA **_ppstScale)
 {
   orxASSERT(_ppstColor != orxNULL);
@@ -253,6 +257,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_CreateMarkerData(const orxTEXT *
   /* Allocate and initialize marker data */
   orxTEXT_MARKER_DATA *pstResult = (orxTEXT_MARKER_DATA *) orxBank_Allocate(_pstText->pstMarkerDatas);
   orxASSERT(pstResult != orxNULL);
+  orxMemory_Zero(pstResult, sizeof(orxTEXT_MARKER_DATA));
   pstResult->eType = _eType;
   return pstResult;
 }
@@ -270,6 +275,9 @@ static orxTEXT_MARKER_STACK_ENTRY *orxFASTCALL orxText_AddMarkerStackEntry(orxLI
   return pstResult;
 }
 
+/** Add a marker cell
+ *  This implicitly forms the ordered list of markers for traversal
+ */
 static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData)
 {
   orxASSERT(_pstText != orxNULL);
