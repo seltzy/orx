@@ -479,8 +479,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* If marker type is invalid, store marker as clean text, move marked string forward and continue */
     if (eType == orxTEXT_MARKER_TYPE_NONE)
     {
-      /* TODO: I think there's a bug here where markers stored as clean text are missing their closing brace */
-      u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
+      u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString + 1);
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
       u32CleanedLength += u32StoreLength;
       zMarkedString = zMarkerEnd + 1;
