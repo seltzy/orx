@@ -636,8 +636,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* Stores a duplicate */
     zResult = orxString_Store(zCleanedString);
   }
+
   /* Since the string is now stored internally, we can safely free it of its mortal coil */
   orxMemory_Free(zCleanedString);
+
+  /* TODO: Remove redundant tags from the bank and compress it. */
 
   /* Done! */
   return zResult;
