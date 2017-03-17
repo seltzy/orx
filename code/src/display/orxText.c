@@ -203,22 +203,23 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
   return zResult;
 }
 
-static void orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName, orxTEXT_MARKER_TYPE eResultType, const orxSTRING _zAtString, orxTEXT_MARKER_TYPE *_peType, const orxSTRING *_pzNextToken)
+static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName, const orxSTRING _zMarkerText, const orxSTRING *_pzNextToken)
 {
   /* No bad input allowed! */
-  orxASSERT(_peType != orxNULL);
   orxASSERT((_zCheckTypeName != orxNULL) && (_zCheckTypeName != orxSTRING_EMPTY) && (*_zCheckTypeName != orxCHAR_NULL));
-  orxASSERT((_zAtString != orxNULL) && (_zAtString != orxSTRING_EMPTY) && (*_zAtString != orxCHAR_NULL)) ;
+  orxASSERT((_zMarkerText != orxNULL) && (_zMarkerText != orxSTRING_EMPTY) && (*_zMarkerText != orxCHAR_NULL)) ;
   orxASSERT(_pzNextToken != orxNULL);
-  *_peType = orxTEXT_MARKER_TYPE_NONE;
+  /* Set default output */
+  orxSTATUS eResult = orxSTATUS_FAILURE;
   *_pzNextToken = orxSTRING_EMPTY;
-  /* See _zCheckTypeName matches the start of _zAtString */
+  /* See _zCheckTypeName matches the start of _zMarkerText */
   orxU32 u32TypeLength = orxString_GetLength(_zCheckTypeName);
-  if (orxString_NCompare(_zAtString, _zCheckTypeName, u32TypeLength) == 0) {
-    /* Update the next token to be the end of the type name in _zAtString */
-    *_pzNextToken = orxString_SkipWhiteSpaces(_zAtString + u32TypeLength);
-    *_peType = eResultType;
+  if (orxString_NCompare(_zMarkerText, _zCheckTypeName, u32TypeLength) == 0) {
+    /* Update the next token to be the end of the type name in _zMarkerText */
+    *_pzNextToken = orxString_SkipWhiteSpaces(_zMarkerText + u32TypeLength);
+    eResult = orxSTATUS_SUCCESS;
   }
+  return eResult;
 }
 
 static orxTEXT_MARKER_DATA *orxFASTCALL orxText_CreateMarkerData(const orxTEXT *_pstText, orxTEXT_MARKER_TYPE _eType)
@@ -350,12 +351,15 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   }
 
   /* Initialize string traversal/storage variables */
+
   zMarkedString    = _zString;
   u32CleanedSize   = orxString_GetLength(zMarkedString) + 1;
   u32CleanedLength = 0;
+
   zCleanedString   = (orxSTRING) orxMemory_Allocate(u32CleanedSize * sizeof(orxCHAR), orxMEMORY_TYPE_MAIN);
   orxASSERT(zCleanedString != orxNULL);
   orxMemory_Zero(zCleanedString, u32CleanedSize * sizeof(orxCHAR));
+
   pstDryRunBank    = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_STACK_ENTRY),
                                     orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
@@ -406,37 +410,52 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* TODO: Reduce duplicate code here */
 
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_FONT, orxTEXT_MARKER_TYPE_FONT, zMarkerTypeStart, &eType, &zNextToken);
-      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-        eType = orxTEXT_MARKER_TYPE_NONE;
-      }
+    /* Find marker type */
+    if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_FONT, zMarkerTypeStart, &zNextToken) == orxSTATUS_SUCCESS)
+    {
+      eType = orxTEXT_MARKER_TYPE_FONT;
     }
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_COLOR, orxTEXT_MARKER_TYPE_COLOR, zMarkerTypeStart, &eType, &zNextToken);
-      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-        eType = orxTEXT_MARKER_TYPE_NONE;
-      }
+    else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_COLOR, zMarkerTypeStart, &zNextToken) == orxSTATUS_SUCCESS)
+    {
+      eType = orxTEXT_MARKER_TYPE_COLOR;
     }
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_SCALE, orxTEXT_MARKER_TYPE_SCALE, zMarkerTypeStart, &eType, &zNextToken);
-      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN) {
-        eType = orxTEXT_MARKER_TYPE_NONE;
-      }
+    else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_SCALE, zMarkerTypeStart, &zNextToken) == orxSTATUS_SUCCESS)
+    {
+      eType = orxTEXT_MARKER_TYPE_SCALE;
     }
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_CLEAR, orxTEXT_MARKER_TYPE_CLEAR, zMarkerTypeStart, &eType, &zNextToken);
-      /* CLEAR doesn't have an assignment operator */
-      if (zNextToken != zMarkerEnd) {
-        eType = orxTEXT_MARKER_TYPE_NONE;
-      }
+    else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_CLEAR, zMarkerTypeStart, &zNextToken) == orxSTATUS_SUCCESS)
+    {
+      eType = orxTEXT_MARKER_TYPE_CLEAR;
     }
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
-      orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_POP, orxTEXT_MARKER_TYPE_POP, zMarkerTypeStart, &eType, &zNextToken);
-      /* POP doesn't have an assignment operator */
-      if (zNextToken != zMarkerEnd) {
+    else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_POP, zMarkerTypeStart, &zNextToken) == orxSTATUS_SUCCESS)
+    {
+      eType = orxTEXT_MARKER_TYPE_POP;
+    }
+    else
+    {
+      eType = orxTEXT_MARKER_TYPE_NONE;
+    }
+
+    /* Ensure the next char is valid */
+    switch(eType)
+    {
+    case orxTEXT_MARKER_TYPE_COLOR:
+    case orxTEXT_MARKER_TYPE_FONT:
+    case orxTEXT_MARKER_TYPE_SCALE:
+      if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN)
+      {
         eType = orxTEXT_MARKER_TYPE_NONE;
       }
+      break;
+    case orxTEXT_MARKER_TYPE_POP:
+    case orxTEXT_MARKER_TYPE_CLEAR:
+      if (zNextToken != zMarkerEnd)
+      {
+        eType = orxTEXT_MARKER_TYPE_NONE;
+      }
+      break;
+    default:
+      eType = orxTEXT_MARKER_TYPE_NONE;
     }
 
     /* If marker type is invalid, store marker as clean text, move marked string forward and continue */
@@ -446,6 +465,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
       u32CleanedLength += u32StoreLength;
       zMarkedString = zMarkerEnd + 1;
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "Invalid marker: %s", zCleanedString + (u32CleanedLength - u32StoreLength));
       continue;
     }
 
