@@ -226,7 +226,7 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
  *  When a stack entry is pushed, its data becomes the fallback data for the next pushed marker of its type.
  *  When a stack entry is popped, its fallback data is added as a new marker (which makes its data the new current fallback of that type).
  */
-static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetFallbackPointer(orxTEXT_MARKER_TYPE eType, const orxTEXT_MARKER_DATA **_ppstColor, const orxTEXT_MARKER_DATA **_ppstFont, const orxTEXT_MARKER_DATA **_ppstScale)
+static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetMarkerFallbackPointer(orxTEXT_MARKER_TYPE eType, const orxTEXT_MARKER_DATA **_ppstColor, const orxTEXT_MARKER_DATA **_ppstFont, const orxTEXT_MARKER_DATA **_ppstScale)
 {
   orxASSERT(_ppstColor != orxNULL);
   orxASSERT(_ppstFont != orxNULL);
@@ -458,6 +458,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     case orxTEXT_MARKER_TYPE_COLOR:
     case orxTEXT_MARKER_TYPE_FONT:
     case orxTEXT_MARKER_TYPE_SCALE:
+      /* Assignment types */
       if (*zNextToken != orxTEXT_KC_MARKER_SYNTAX_ASSIGN)
       {
         eType = orxTEXT_MARKER_TYPE_NONE;
@@ -465,6 +466,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       break;
     case orxTEXT_MARKER_TYPE_POP:
     case orxTEXT_MARKER_TYPE_CLEAR:
+      /* Stack modifiers */
       if (zNextToken != zMarkerEnd)
       {
         eType = orxTEXT_MARKER_TYPE_NONE;
@@ -496,7 +498,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         orxTEXT_MARKER_TYPE eTopType = pstTop->pstData->eType;
         /* Get a pointer to the appropriate fallback data */
         const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
-        ppstFallbackData = orxText_GetFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
+        ppstFallbackData = orxText_GetMarkerFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
         /* Pop the stack, updating what pstFallbackData points to */
         orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
       }
@@ -522,7 +524,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxTEXT_MARKER_TYPE eTopType = pstTop->pstData->eType;
       /* Get a pointer to the appropriate fallback data */
       const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
-      ppstFallbackData = orxText_GetFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
+      ppstFallbackData = orxText_GetMarkerFallbackPointer(eTopType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
       /* Pop the stack, updating what pstFallbackData points to */
       orxText_PopMarker(_pstText, u32CleanedLength, ppstFallbackData, &stDryRunStack);
       continue;
@@ -554,11 +556,13 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* The type we're storing will determine which fallback pointer needs to be updated */
     const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
-    ppstFallbackData = orxText_GetFallbackPointer(eType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
+    ppstFallbackData = orxText_GetMarkerFallbackPointer(eType, &pstPrevColor, &pstPrevFont, &pstPrevScale);
 
-    if (eType == orxTEXT_MARKER_TYPE_FONT)
+    switch(eType)
     {
-      /* Attempt to store font style */
+    /* Attempt to store font style */
+    case orxTEXT_MARKER_TYPE_FONT:
+    {
       const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString);
       /* EDGE CASE: Handle invalid/missing font */
       if (pstFont == orxNULL)
@@ -568,10 +572,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
       pstData->pstFont = pstFont;
+      break;
     }
-    else if (eType == orxTEXT_MARKER_TYPE_COLOR)
+    /* Attempt to store color style */
+    case orxTEXT_MARKER_TYPE_COLOR:
     {
-      /* Attempt to store color style */
       orxVECTOR vColor = {0};
       /* EDGE CASE: Handle invalid/missing color */
       if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_FAILURE)
@@ -581,10 +586,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       }
       orxCOLOR stColor = {vColor, 1.0f};
       pstData->stRGBA = orxColor_ToRGBA(&stColor);
+      break;
     }
-    else if (eType == orxTEXT_MARKER_TYPE_SCALE)
+    /* Attempt to store scale style */
+    case orxTEXT_MARKER_TYPE_SCALE:
     {
-      /* Attempt to store color style */
       orxVECTOR vScale = {0};
       /* EDGE CASE: Handle invalid/missing color */
       if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_FAILURE)
@@ -592,9 +598,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         vScale = orxVECTOR_1;
       }
       orxVector_Copy(&pstData->vScale, &vScale);
+      break;
     }
-    else
-    {
+    default:
       /* Well this wasn't expected. Store marker as clean text, move marked string forward, and continue */
       u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
