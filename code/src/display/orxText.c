@@ -627,8 +627,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* Free the dry run bank full of any remaining stack entries */
   orxBank_Delete(pstDryRunBank);
 
-  /* Terminate cleaned string */
-  zCleanedString[u32CleanedLength] = orxCHAR_NULL;
+  /* Terminate cleaned string - just to be safe */
+  zCleanedString[u32CleanedLength - 1] = orxCHAR_NULL;
 
   /* Has new string? */
   if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
