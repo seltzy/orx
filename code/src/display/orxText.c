@@ -267,23 +267,7 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_ps
 
   return pstResult;
 }
-static void orxFASTCALL orxText_PushMarker(const orxTEXT *_pstText, orxU32 _u32Index,
-                                           const orxTEXT_MARKER_DATA **_ppstFallbackData, orxTEXT_MARKER_DATA *_pstData,
-                                           orxLINKLIST *_pstStack, orxBANK *_pstStackBank)
-{
-  orxASSERT(_pstText != orxNULL);
-  orxASSERT(_u32Index != orxU32_UNDEFINED);
-  orxASSERT(_ppstFallbackData != orxNULL);
-  orxASSERT(_pstStack != orxNULL);
-  orxASSERT(_pstStackBank != orxNULL);
 
-  /* Push data to stack with fallback data */
-  orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(_pstStack, _pstStackBank, _pstData, *_ppstFallbackData);
-  /* Add a marker */
-  orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, _u32Index, _pstData);
-  /* Update the processor's fallback data */
-  *_ppstFallbackData = _pstData;
-}
 static void orxFASTCALL orxText_PopMarker(const orxTEXT *_pstText, orxU32 _u32Index,
                                           const orxTEXT_MARKER_DATA **_ppstFallbackData, orxLINKLIST *_pstStack)
 {
@@ -562,6 +546,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
     /* Check style values */
 
+    /* The type we're storing will determine which fallback pointer needs to be updated */
+    const orxTEXT_MARKER_DATA **ppstFallback = orxNULL;
+
     if (eType == orxTEXT_MARKER_TYPE_FONT)
     {
       /* Attempt to store font style */
@@ -574,7 +561,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstFont != orxNULL);
       /* If everything checks out, store the font and continue */
       pstData->pstFont = pstFont;
-      orxText_PushMarker(_pstText, u32CleanedLength, &pstPrevFont, pstData, &stDryRunStack, pstDryRunBank);
+      /* Update fallback pointer */
+      ppstFallback = &pstPrevFont;
     }
     else if (eType == orxTEXT_MARKER_TYPE_COLOR)
     {
@@ -588,7 +576,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       }
       orxCOLOR stColor = {vColor, 1.0f};
       pstData->stRGBA = orxColor_ToRGBA(&stColor);
-      orxText_PushMarker(_pstText, u32CleanedLength, &pstPrevColor, pstData, &stDryRunStack, pstDryRunBank);
+      /* Update fallback pointer */
+      ppstFallback = &pstPrevColor;
     }
     else if (eType == orxTEXT_MARKER_TYPE_SCALE)
     {
@@ -600,7 +589,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         vScale = orxVECTOR_1;
       }
       orxVector_Copy(&pstData->vScale, &vScale);
-      orxText_PushMarker(_pstText, u32CleanedLength, &pstPrevScale, pstData, &stDryRunStack, pstDryRunBank);
+      /* Update fallback pointer */
+      ppstFallback = &pstPrevScale;
     }
     else
     {
@@ -609,6 +599,18 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
       u32CleanedLength += u32StoreLength;
     }
+
+    /* Add/Push marker */
+    if (ppstFallback != orxNULL)
+    {
+      /* Push data to stack with fallback data */
+      orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallback);
+      /* Add a marker cell (implicitly represents final traversal order )*/
+      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedLength, pstData);
+      /* Update the fallback data pointer */
+      *ppstFallback = pstData;
+    }
+
     /* Move the marked string forward so we may continue */
     zMarkedString = zMarkerEnd + 1;
   }
