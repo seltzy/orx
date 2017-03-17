@@ -594,12 +594,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     case orxTEXT_MARKER_TYPE_SCALE:
     {
       orxVECTOR vScale = {0};
-      /* EDGE CASE: Handle invalid/missing color */
+      /* EDGE CASE: Handle invalid/missing scale */
       if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_FAILURE)
       {
         vScale = orxVECTOR_1;
       }
-      orxVector_Copy(&pstData->vScale, &vScale);
+      orxVector_Copy(&(pstData->vScale), &vScale);
       break;
     }
     default:

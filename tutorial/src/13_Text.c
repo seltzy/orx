@@ -96,7 +96,7 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
         orxVECTOR vScale = {0};
         if (orxText_GetMarkerScale(hIterator, &vScale) == orxSTATUS_SUCCESS)
         {
-          orxLOG("Hit %s Marker @%u (%d, %d, %d)", "scale", u32Index, vScale.fX, vScale.fY, vScale.fZ);
+          orxLOG("Hit %s Marker @%u (%f, %f, %f)", "scale", u32Index, vScale.fX, vScale.fY, vScale.fZ);
         }
         break;
       }
