@@ -1852,12 +1852,16 @@ orxBITMAP *orxFASTCALL orxDisplay_GLFW_GetScreenBitmap()
 
 orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, orxHANDLE _hMarkerIterator, const orxBITMAP *_pstFont, const orxCHARACTER_MAP *_pstMap, const orxDISPLAY_TRANSFORM *_pstTransform, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode)
 {
-  orxDISPLAY_MATRIX mTransform;
-  const orxCHAR    *pc;
-  orxU32            u32CharacterCodePoint;
-  orxU32            u32CharacterIndex;
-  GLfloat           fX, fY, fHeight;
-  orxSTATUS         eResult = orxSTATUS_SUCCESS;
+  orxDISPLAY_MATRIX       mTransform;
+  const orxCHAR          *pc;
+  orxU32                  u32CharacterCodePoint;
+  orxU32                  u32CharacterIndex;
+  GLfloat                 fX, fY, fHeight;
+  const orxBITMAP        *pstMarkerFontBitmap       = _pstFont;
+  const orxCHARACTER_MAP *pstMarkerFontCharacterMap = _pstMap;
+  orxRGBA                 stMarkerBitmapColor       = _pstFont->stColor;
+  orxVECTOR               vMarkerGlyphScale         = orxVECTOR_1;
+  orxSTATUS               eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
   orxASSERT((sstDisplay.u32Flags & orxDISPLAY_KU32_STATIC_FLAG_READY) == orxDISPLAY_KU32_STATIC_FLAG_READY);
@@ -1910,8 +1914,67 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       {
         const orxCHARACTER_GLYPH *pstGlyph;
         orxFLOAT                  fWidth;
+
+        /* Step through markers at this character index and update rendering data accordingly */
+        for ( ;
+              (_hMarkerIterator != orxNULL) && (_hMarkerIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(_hMarkerIterator) == u32CharacterIndex) ;
+             _hMarkerIterator = orxText_NextMarker(_hMarkerIterator) )
+        {
+          orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(_hMarkerIterator);
+          switch (eType)
+          {
+          case orxTEXT_MARKER_TYPE_FONT:
+          {
+            const orxFONT *pstFont = orxNULL;
+            orxASSERT(orxText_GetMarkerFont(_hMarkerIterator, &pstFont) == orxSTATUS_SUCCESS);
+            pstMarkerFontBitmap = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
+            pstMarkerFontCharacterMap = orxFont_GetMap(pstFont);
+            fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
+            /* Prepares font for drawing */
+            orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_COLOR:
+          {
+            orxASSERT(orxText_GetMarkerColor(_hMarkerIterator, &stMarkerBitmapColor) == orxSTATUS_SUCCESS);
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_SCALE:
+          {
+            orxASSERT(orxText_GetMarkerScale(_hMarkerIterator, &vMarkerGlyphScale) == orxSTATUS_SUCCESS);
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_REVERT:
+          {
+            orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
+            orxASSERT(orxText_GetMarkerRevertType(_hMarkerIterator, &eRevertType) == orxSTATUS_SUCCESS);
+            switch (eRevertType)
+            {
+            case orxTEXT_MARKER_TYPE_FONT:
+              pstMarkerFontBitmap = _pstFont;
+              pstMarkerFontCharacterMap = _pstMap;
+              fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
+              /* Prepares font for drawing */
+              orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
+              break;
+            case orxTEXT_MARKER_TYPE_COLOR:
+              stMarkerBitmapColor = _pstFont->stColor;
+              break;
+            case orxTEXT_MARKER_TYPE_SCALE:
+              vMarkerGlyphScale = orxVECTOR_1;
+              break;
+            default:
+              orxASSERT(orxFALSE, "Impossible marker revert type!");
+            }
+            break;
+          }
+          default:
+            orxASSERT(orxFALSE, "Impossible marker type!");
+          }
+        }
+
         /* Gets glyph from UTF-8 table */
-        pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(_pstMap->pstCharacterTable, u32CharacterCodePoint);
+        pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(pstMarkerFontCharacterMap->pstCharacterTable, u32CharacterCodePoint);
 
         /* Valid? */
         if(pstGlyph != orxNULL)
@@ -1937,19 +2000,19 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fY  = (mTransform.vY.fX * (fX + fWidth)) + (mTransform.vY.fY * fY) + mTransform.vY.fZ;
 
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fU      =
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fU  = (GLfloat)(_pstFont->fRecRealWidth * (pstGlyph->fX + orxDISPLAY_KF_BORDER_FIX));
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fU  = (GLfloat)(pstMarkerFontBitmap->fRecRealWidth * (pstGlyph->fX + orxDISPLAY_KF_BORDER_FIX));
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fU  =
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fU  = (GLfloat)(_pstFont->fRecRealWidth * (pstGlyph->fX + fWidth - orxDISPLAY_KF_BORDER_FIX));
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fU  = (GLfloat)(pstMarkerFontBitmap->fRecRealWidth * (pstGlyph->fX + fWidth - orxDISPLAY_KF_BORDER_FIX));
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fV  =
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fV  = (GLfloat)(_pstFont->fRecRealHeight * (pstGlyph->fY + orxDISPLAY_KF_BORDER_FIX));
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fV  = (GLfloat)(pstMarkerFontBitmap->fRecRealHeight * (pstGlyph->fY + orxDISPLAY_KF_BORDER_FIX));
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fV      =
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fV  = (GLfloat)(_pstFont->fRecRealHeight * (pstGlyph->fY + fHeight - orxDISPLAY_KF_BORDER_FIX));
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fV  = (GLfloat)(pstMarkerFontBitmap->fRecRealHeight * (pstGlyph->fY + fHeight - orxDISPLAY_KF_BORDER_FIX));
 
           /* Fills the color list */
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex].stRGBA      =
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].stRGBA  =
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].stRGBA  =
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].stRGBA  = _pstFont->stColor;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].stRGBA  = stMarkerBitmapColor;
 
           /* Updates counter */
           sstDisplay.s32BufferIndex += 4;
