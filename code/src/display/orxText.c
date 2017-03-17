@@ -477,7 +477,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* If marker type is invalid, store marker as clean text, move marked string forward and continue */
-    if (eType == orxTEXT_MARKER_TYPE_NONE) {
+    if (eType == orxTEXT_MARKER_TYPE_NONE)
+    {
       /* TODO: I think there's a bug here where markers stored as clean text are missing their closing brace */
       u32StoreLength = (orxU32) (zMarkerEnd - zMarkedString);
       orxString_NCopy(zCleanedString + u32CleanedLength, zMarkedString, u32StoreLength);
@@ -488,7 +489,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Clear (i.e. pop everything) */
-    if (eType == orxTEXT_MARKER_TYPE_CLEAR) {
+    if (eType == orxTEXT_MARKER_TYPE_CLEAR)
+    {
       zMarkedString = zMarkerEnd + 1;
       /* Clear out the stack */
       while (orxLinkList_GetCounter(&stDryRunStack) > 0)
@@ -512,7 +514,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
 
     /* Pop marker stack */
-    if (eType == orxTEXT_MARKER_TYPE_POP) {
+    if (eType == orxTEXT_MARKER_TYPE_POP)
+    {
       zMarkedString = zMarkerEnd + 1;
       /* We can't pop the stack if it's already empty */
       if (orxLinkList_GetCounter(&stDryRunStack) == 0)
