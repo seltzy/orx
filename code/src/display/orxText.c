@@ -504,8 +504,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxBank_Clear(pstDryRunBank);
       /* Let's see if this cleared out properly */
       orxASSERT(pstPrevColor != orxNULL || pstPrevColor->eType == orxTEXT_MARKER_TYPE_REVERT);
-      orxASSERT(pstPrevFont != orxNULL || pstPrevFont->eType == orxTEXT_MARKER_TYPE_REVERT);
-      orxASSERT(pstPrevScale == orxNULL || pstPrevScale->eType == orxTEXT_MARKER_TYPE_REVERT);
+      orxASSERT(pstPrevFont  != orxNULL || pstPrevFont->eType  == orxTEXT_MARKER_TYPE_REVERT);
+      orxASSERT(pstPrevScale != orxNULL || pstPrevScale->eType == orxTEXT_MARKER_TYPE_REVERT);
       continue;
     }
 
