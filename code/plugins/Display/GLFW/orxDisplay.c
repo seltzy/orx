@@ -2026,12 +2026,12 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         /* Updates X position */
         fX += fWidth * vMarkerGlyphScale.fX;
 
-        /* Updates character index */
-        u32CharacterIndex++;
-
         break;
       }
     }
+
+    /* Updates character index */
+    u32CharacterIndex++;
   }
 
   /* Done! */
