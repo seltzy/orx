@@ -1384,11 +1384,14 @@ orxU32 orxFASTCALL orxText_GetMarkerCounter(orxTEXT *_pstText)
   return orxBank_GetCounter(_pstText->pstMarkerCells);
 }
 
+/** Get handle to iterate markers starting with the first
+ *  Returns orxHANDLE_UNDEFINED if no markers exist.
+ */
 orxHANDLE orxFASTCALL orxText_GetMarkerIterator(orxTEXT *_pstText)
 {
   orxTEXT_MARKER_CELL *pstCell;
   orxHANDLE hResult;
-  if (_pstText != orxNULL)
+  if ((_pstText != orxNULL) && (orxBank_GetCounter(_pstText->pstMarkerCells) > 0))
   {
     pstCell = (orxTEXT_MARKER_CELL *) orxBank_GetAtIndex(_pstText->pstMarkerCells, 0);
     hResult = (orxHANDLE) pstCell;
@@ -1400,6 +1403,9 @@ orxHANDLE orxFASTCALL orxText_GetMarkerIterator(orxTEXT *_pstText)
   return hResult;
 }
 
+/** Get next handle to iterate markers
+ *  Returns orxHANDLE_UNDEFINED if provided iterator is invalid, or when no markers remain
+ */
 orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
