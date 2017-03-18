@@ -75,7 +75,7 @@
 #define orxTEXT_KC_MARKER_SYNTAX_CLOSE        '>'
 #define orxTEXT_KC_MARKER_SYNTAX_ASSIGN       '='
 #define orxTEXT_KZ_MARKER_TYPE_FONT           "font"
-#define orxTEXT_KZ_MARKER_TYPE_COLOR          "col"
+#define orxTEXT_KZ_MARKER_TYPE_COLOR          "color"
 #define orxTEXT_KZ_MARKER_TYPE_SCALE          "scale"
 #define orxTEXT_KZ_MARKER_TYPE_POP            "!"
 #define orxTEXT_KZ_MARKER_TYPE_CLEAR          "*"
