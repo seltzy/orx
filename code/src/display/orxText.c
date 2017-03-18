@@ -627,8 +627,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* Free the dry run bank full of any remaining stack entries */
   orxBank_Delete(pstDryRunBank);
 
-  /* Terminate cleaned string - just to be safe */
-  zCleanedString[u32CleanedSizeUsed - 1] = orxCHAR_NULL;
+  /* TODO: There's probably a better way to represent this edge case */
+  if (*(zCleanedString + u32CleanedSizeUsed) != orxCHAR_NULL)
+  {
+    /* Terminate cleaned string - just to be safe */
+    zCleanedString[u32CleanedSizeUsed - 1] = orxCHAR_NULL;
+  }
 
   /* Has new string? */
   if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
