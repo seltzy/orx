@@ -1884,6 +1884,63 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       u32CharacterCodePoint != orxCHAR_NULL;
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
+    /* Step through markers at this character index and update rendering data accordingly */
+    for ( ;
+          (_hMarkerIterator != orxNULL) && (_hMarkerIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(_hMarkerIterator) == u32CharacterIndex) ;
+          _hMarkerIterator = orxText_NextMarker(_hMarkerIterator) )
+    {
+      orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(_hMarkerIterator);
+      switch (eType)
+      {
+      case orxTEXT_MARKER_TYPE_FONT:
+      {
+        const orxFONT *pstFont = orxNULL;
+        orxASSERT(orxText_GetMarkerFont(_hMarkerIterator, &pstFont) == orxSTATUS_SUCCESS);
+        pstMarkerFontBitmap = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
+        pstMarkerFontCharacterMap = orxFont_GetMap(pstFont);
+        fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
+        /* Prepares font for drawing */
+        orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
+        break;
+      }
+      case orxTEXT_MARKER_TYPE_COLOR:
+      {
+        orxASSERT(orxText_GetMarkerColor(_hMarkerIterator, &stMarkerBitmapColor) == orxSTATUS_SUCCESS);
+        break;
+      }
+      case orxTEXT_MARKER_TYPE_SCALE:
+      {
+        orxASSERT(orxText_GetMarkerScale(_hMarkerIterator, &vMarkerGlyphScale) == orxSTATUS_SUCCESS);
+        break;
+      }
+      case orxTEXT_MARKER_TYPE_REVERT:
+      {
+        orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
+        orxASSERT(orxText_GetMarkerRevertType(_hMarkerIterator, &eRevertType) == orxSTATUS_SUCCESS);
+        switch (eRevertType)
+        {
+        case orxTEXT_MARKER_TYPE_FONT:
+          pstMarkerFontBitmap = _pstFont;
+          pstMarkerFontCharacterMap = _pstMap;
+          fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
+          /* Prepares font for drawing */
+          orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
+          break;
+        case orxTEXT_MARKER_TYPE_COLOR:
+          stMarkerBitmapColor = _pstFont->stColor;
+          break;
+        case orxTEXT_MARKER_TYPE_SCALE:
+          vMarkerGlyphScale = orxVECTOR_1;
+          break;
+        default:
+          orxASSERT(orxFALSE, "Impossible marker revert type!");
+        }
+        break;
+      }
+      default:
+        orxASSERT(orxFALSE, "Impossible marker type!");
+      }
+    }
     /* Depending on character */
     switch(u32CharacterCodePoint)
     {
@@ -1902,7 +1959,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       case orxCHAR_LF:
       {
         /* Updates Y position */
-        fY += fHeight;
+        fY += fHeight * vMarkerGlyphScale.fY;
 
         /* Resets X position */
         fX = 0.0f;
@@ -1914,64 +1971,6 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       {
         const orxCHARACTER_GLYPH *pstGlyph;
         orxFLOAT                  fWidth;
-
-        /* Step through markers at this character index and update rendering data accordingly */
-        for ( ;
-              (_hMarkerIterator != orxNULL) && (_hMarkerIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(_hMarkerIterator) == u32CharacterIndex) ;
-             _hMarkerIterator = orxText_NextMarker(_hMarkerIterator) )
-        {
-          orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(_hMarkerIterator);
-          switch (eType)
-          {
-          case orxTEXT_MARKER_TYPE_FONT:
-          {
-            const orxFONT *pstFont = orxNULL;
-            orxASSERT(orxText_GetMarkerFont(_hMarkerIterator, &pstFont) == orxSTATUS_SUCCESS);
-            pstMarkerFontBitmap = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
-            pstMarkerFontCharacterMap = orxFont_GetMap(pstFont);
-            fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
-            /* Prepares font for drawing */
-            orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_COLOR:
-          {
-            orxASSERT(orxText_GetMarkerColor(_hMarkerIterator, &stMarkerBitmapColor) == orxSTATUS_SUCCESS);
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_SCALE:
-          {
-            orxASSERT(orxText_GetMarkerScale(_hMarkerIterator, &vMarkerGlyphScale) == orxSTATUS_SUCCESS);
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_REVERT:
-          {
-            orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
-            orxASSERT(orxText_GetMarkerRevertType(_hMarkerIterator, &eRevertType) == orxSTATUS_SUCCESS);
-            switch (eRevertType)
-            {
-            case orxTEXT_MARKER_TYPE_FONT:
-              pstMarkerFontBitmap = _pstFont;
-              pstMarkerFontCharacterMap = _pstMap;
-              fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
-              /* Prepares font for drawing */
-              orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
-              break;
-            case orxTEXT_MARKER_TYPE_COLOR:
-              stMarkerBitmapColor = _pstFont->stColor;
-              break;
-            case orxTEXT_MARKER_TYPE_SCALE:
-              vMarkerGlyphScale = orxVECTOR_1;
-              break;
-            default:
-              orxASSERT(orxFALSE, "Impossible marker revert type!");
-            }
-            break;
-          }
-          default:
-            orxASSERT(orxFALSE, "Impossible marker type!");
-          }
-        }
 
         /* Gets glyph from UTF-8 table */
         pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(pstMarkerFontCharacterMap->pstCharacterTable, u32CharacterCodePoint);
