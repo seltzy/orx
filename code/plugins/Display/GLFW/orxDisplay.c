@@ -1990,14 +1990,14 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
           }
 
           /* Outputs vertices and texture coordinates */
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fX      = (mTransform.vX.fX * fX) + (mTransform.vX.fY * (fY + fHeight)) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fY      = (mTransform.vY.fX * fX) + (mTransform.vY.fY * (fY + fHeight)) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fX      = (mTransform.vX.fX * fX) + (mTransform.vX.fY * (fY + fHeight * vMarkerGlyphScale.fY)) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fY      = (mTransform.vY.fX * fX) + (mTransform.vY.fY * (fY + fHeight * vMarkerGlyphScale.fY)) + mTransform.vY.fZ;
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fX  = (mTransform.vX.fX * fX) + (mTransform.vX.fY * fY) + mTransform.vX.fZ;
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fY  = (mTransform.vY.fX * fX) + (mTransform.vY.fY * fY) + mTransform.vY.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fX  = (mTransform.vX.fX * (fX + fWidth)) + (mTransform.vX.fY * (fY + fHeight)) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fY  = (mTransform.vY.fX * (fX + fWidth)) + (mTransform.vY.fY * (fY + fHeight)) + mTransform.vY.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fX  = (mTransform.vX.fX * (fX + fWidth)) + (mTransform.vX.fY * fY) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fY  = (mTransform.vY.fX * (fX + fWidth)) + (mTransform.vY.fY * fY) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fX  = (mTransform.vX.fX * (fX + fWidth * vMarkerGlyphScale.fX)) + (mTransform.vX.fY * (fY + fHeight * vMarkerGlyphScale.fY)) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fY  = (mTransform.vY.fX * (fX + fWidth * vMarkerGlyphScale.fX)) + (mTransform.vY.fY * (fY + fHeight * vMarkerGlyphScale.fY)) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fX  = (mTransform.vX.fX * (fX + fWidth * vMarkerGlyphScale.fX)) + (mTransform.vX.fY * fY) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fY  = (mTransform.vY.fX * (fX + fWidth * vMarkerGlyphScale.fX)) + (mTransform.vY.fY * fY) + mTransform.vY.fZ;
 
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fU      =
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fU  = (GLfloat)(pstMarkerFontBitmap->fRecRealWidth * (pstGlyph->fX + orxDISPLAY_KF_BORDER_FIX));
@@ -2020,11 +2020,11 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         else
         {
           /* Gets default width */
-          fWidth = fHeight;
+          fWidth = fHeight * vMarkerGlyphScale.fX;
         }
 
         /* Updates X position */
-        fX += fWidth;
+        fX += fWidth * vMarkerGlyphScale.fX;
 
         /* Updates character index */
         u32CharacterIndex++;
