@@ -860,18 +860,63 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   /* Has string and font? */
   if((_pstText->zString != orxNULL) && (_pstText->zString != orxSTRING_EMPTY) && (_pstText->pstFont != orxNULL))
   {
-    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight;
-    orxU32          u32CharacterCodePoint;
+
+    orxFLOAT        fWidth, fMaxWidth, fHeight, fMaxLineHeight, fCharacterHeight;
+    orxU32          u32CharacterCodePoint, u32CharacterIndex;
+    orxVECTOR       vScale;
+    const orxFONT  *pstFont;
+    orxHANDLE       hIterator;
     const orxCHAR  *pc;
+
+    /* Initialize default scale */
+    vScale = orxVECTOR_1;
+    pstFont = _pstText->pstFont;
+    hIterator = orxNULL;
 
     /* Gets character height */
     fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
 
     /* For all characters */
-    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), fHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
+    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
+      /* Apply marker font/scale modifications */
+      for ( hIterator = ((hIterator != orxNULL) ? hIterator : orxText_GetMarkerIterator(_pstText));
+           (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32CharacterIndex);
+            hIterator = orxText_NextMarker(hIterator) )
+      {
+        orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hIterator);
+        /* New scale */
+        if (eType == orxTEXT_MARKER_TYPE_SCALE)
+        {
+          orxASSERT(orxText_GetMarkerScale(hIterator, &vScale) == orxSTATUS_SUCCESS);
+        }
+        /* New font */
+        else if (eType == orxTEXT_MARKER_TYPE_FONT)
+        {
+          orxASSERT(orxText_GetMarkerFont(hIterator, &pstFont) == orxSTATUS_SUCCESS);
+        }
+        /* Revert to default values */
+        else if ((eType == orxTEXT_MARKER_TYPE_REVERT) && (orxText_GetMarkerRevertType(hIterator, &eType) == orxSTATUS_SUCCESS))
+        {
+          if (eType == orxTEXT_MARKER_TYPE_SCALE)
+          {
+            vScale = orxVECTOR_1;
+          }
+          else if (eType == orxTEXT_MARKER_TYPE_FONT)
+          {
+            pstFont = _pstText->pstFont;
+          }
+        }
+        /* Update font */
+        pstFont = (pstFont != orxNULL) ? pstFont : _pstText->pstFont;
+        /* Update character height based on font */
+        fCharacterHeight = orxFont_GetCharacterHeight(pstFont);
+        /* Update max line height using font character height and scale */
+        fMaxLineHeight = orxMAX(fMaxLineHeight, fCharacterHeight * vScale.fY);
+      }
+
       /* Depending on character */
       switch(u32CharacterCodePoint)
       {
@@ -890,7 +935,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
         case orxCHAR_LF:
         {
           /* Updates height */
-          fHeight += fCharacterHeight;
+          fHeight += fMaxLineHeight;
 
           /* Updates max width */
           fMaxWidth = orxMAX(fMaxWidth, fWidth);
@@ -898,13 +943,19 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* Resets width */
           fWidth = orxFLOAT_0;
 
+          /* Resets max line height */
+          fMaxLineHeight = orxFLOAT_0;
+
           break;
         }
 
         default:
         {
           /* Updates width */
-          fWidth += orxFont_GetCharacterWidth(_pstText->pstFont, u32CharacterCodePoint);
+          fWidth += orxFont_GetCharacterWidth(pstFont, u32CharacterCodePoint) * vScale.fX;
+
+          /* Increment character index */
+          u32CharacterIndex++;
 
           break;
         }
