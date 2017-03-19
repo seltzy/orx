@@ -112,9 +112,9 @@ typedef struct __orxTEXT_MARKER_DATA_t
  */
 typedef struct __orxTEXT_MARKER_CELL_t
 {
+  orxLINKLIST_NODE                       stNode;
   orxU32                                 u32Index;
   const orxTEXT_MARKER_DATA             *pstData;
-  const struct __orxTEXT_MARKER_CELL_t  *pstNext;
 } orxTEXT_MARKER_CELL;
 
 /** Marker stack entry
@@ -263,6 +263,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_CreateMarkerData(const orxTEXT *
   pstResult->eType = _eType;
   return pstResult;
 }
+
 static orxTEXT_MARKER_STACK_ENTRY *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
 {
   orxASSERT(_pstStackBank != orxNULL);
@@ -279,7 +280,7 @@ static orxTEXT_MARKER_STACK_ENTRY *orxFASTCALL orxText_AddMarkerStackEntry(orxLI
 /** Add a marker cell
  *  This implicitly forms the ordered list of markers for traversal
  */
-static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData, orxTEXT_MARKER_CELL *_pstPrevMarker)
+static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData, orxBOOL bSeekInsertion)
 {
   orxASSERT(_pstText != orxNULL);
   orxASSERT(_u32Index != orxU32_UNDEFINED);
@@ -289,24 +290,39 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_ps
   orxASSERT(pstResult != orxNULL);
   pstResult->u32Index = _u32Index;
   pstResult->pstData = _pstData;
-  pstResult->pstNext = orxNULL;
 
-  /* Update the previous marker, setting its 'next' to this marker */
-  orxTEXT_MARKER_CELL *pstPrevMarker = (_pstPrevMarker != orxNULL) ? _pstPrevMarker : orxBank_GetAtIndex(_pstText->pstMarkerCells, orxBank_GetIndex(_pstText->pstMarkerCells, pstResult) - 1);
-  if (pstPrevMarker != orxNULL)
+  if (bSeekInsertion)
   {
-    /* If the previous marker had a next, it means we're inserting as opposed to appending */
-    if (pstPrevMarker->pstNext != orxNULL)
+    orxTEXT_MARKER_CELL *pstCell = orxNULL;
+    for (orxLINKLIST_NODE *pstNode = orxLinkList_GetFirst(&_pstText->stMarkers)
+           ; pstNode != orxNULL
+           ; pstNode = orxLinkList_GetNext(pstNode))
     {
-      pstResult->pstNext = pstPrevMarker->pstNext;
+      pstCell = (orxTEXT_MARKER_CELL *) pstNode;
+      if (_u32Index < pstCell->u32Index)
+      {
+        pstCell = (orxTEXT_MARKER_CELL *) orxLinkList_GetPrevious(pstNode);
+        break;
+      }
     }
-    pstPrevMarker->pstNext = pstResult;
+    if (pstCell == orxNULL)
+    {
+      orxLinkList_AddStart(&_pstText->stMarkers, (orxLINKLIST_NODE *) pstResult);
+    }
+    else
+    {
+      orxLinkList_AddBefore((orxLINKLIST_NODE *) pstCell, (orxLINKLIST_NODE *) pstResult);
+    }
+  }
+  else
+  {
+    orxLinkList_AddEnd(&_pstText->stMarkers, (orxLINKLIST_NODE *) pstResult);
   }
 
   return pstResult;
 }
 
-static void orxFASTCALL orxText_PopMarker(const orxTEXT *_pstText, orxU32 _u32Index,
+static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index,
                                           const orxTEXT_MARKER_DATA **_ppstFallbackData, orxLINKLIST *_pstStack)
 {
   orxASSERT(_pstText != orxNULL);
@@ -340,7 +356,7 @@ static void orxFASTCALL orxText_PopMarker(const orxTEXT *_pstText, orxU32 _u32In
     }
   }
   /* Add a new marker using fallback data */
-  orxText_AddMarkerCell(_pstText, _u32Index, pstFallbackData, orxNULL);
+  orxText_AddMarkerCell(_pstText, _u32Index, pstFallbackData, orxFALSE);
   /* Update the processors fallback data to be the newly added marker's data */
   /* This is either the popped marker's fallback data, or a placeholder for the user to interpret */
   *_ppstFallbackData = pstFallbackData;
@@ -365,6 +381,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* Clear banks */
   orxBank_Clear(_pstText->pstMarkerCells);
   orxBank_Clear(_pstText->pstMarkerDatas);
+  orxLinkList_Clean(&_pstText->stMarkers);
 
   /* If string is invalid, return it. */
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
@@ -621,7 +638,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       /* Push data to stack with fallback data */
       orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallbackData);
       /* Add a marker cell (implicitly represents final traversal order )*/
-      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData, orxNULL);
+      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData, orxFALSE);
       /* Update the fallback data pointer */
       *ppstFallbackData = pstData;
     }
@@ -891,7 +908,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
       /* Apply marker font/scale modifications */
       for ( hIterator = ((hIterator != orxNULL) ? hIterator : orxText_GetMarkerIterator(_pstText));
            (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32CharacterIndex);
-            hPrevious = hIterator, hIterator = orxText_NextMarker(hIterator) )
+            hIterator = orxText_NextMarker(hIterator) )
       {
         orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hIterator);
         /* New scale */
@@ -944,7 +961,8 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* Insert marker to identify max line height for rendering */
           orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
           pstData->fLineHeight = fMaxLineHeight;
-          orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstData, (orxTEXT_MARKER_CELL *) hPrevious);
+          /* EDGE CASE BUG: Final line isn't getting a marker */
+          orxTEXT_MARKER_CELL *pstCell = orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstData, orxTRUE);
 
           /* Set next line start index */
           u32LineStartIndex = u32CharacterIndex + 1;
@@ -1145,6 +1163,7 @@ orxTEXT *orxFASTCALL orxText_Create()
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
     pstResult->pstMarkerCells = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER_CELL),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
+    orxMemory_Zero(&pstResult->stMarkers, sizeof(orxLINKLIST));
 
     /* Inits flags */
     orxStructure_SetFlags(pstResult, orxTEXT_KU32_FLAG_NONE, orxTEXT_KU32_MASK_ALL);
@@ -1456,9 +1475,9 @@ orxHANDLE orxFASTCALL orxText_GetMarkerIterator(orxTEXT *_pstText)
 {
   orxTEXT_MARKER_CELL *pstCell;
   orxHANDLE hResult;
-  if ((_pstText != orxNULL) && (orxBank_GetCounter(_pstText->pstMarkerCells) > 0))
+  if ((_pstText != orxNULL) && (orxBank_GetCounter(_pstText->pstMarkerCells) > 0) && (orxLinkList_GetCounter(&_pstText->stMarkers) > 0))
   {
-    pstCell = (orxTEXT_MARKER_CELL *) orxBank_GetAtIndex(_pstText->pstMarkerCells, 0);
+    pstCell = (orxTEXT_MARKER_CELL *) orxLinkList_GetFirst(&_pstText->stMarkers);
     hResult = (orxHANDLE) pstCell;
   }
   else
@@ -1478,7 +1497,7 @@ orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
-    hResult = (orxHANDLE) pstCell->pstNext;
+    hResult = (orxHANDLE) orxLinkList_GetNext((orxLINKLIST_NODE *) pstCell);
   }
   else
   {
