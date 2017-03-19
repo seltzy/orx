@@ -1856,6 +1856,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   const orxCHAR          *pc;
   orxU32                  u32CharacterCodePoint;
   orxU32                  u32CharacterIndex;
+  orxFLOAT                fLineHeight;
   GLfloat                 fX, fY, fHeight;
   const orxBITMAP        *pstMarkerFontBitmap       = _pstFont;
   const orxCHARACTER_MAP *pstMarkerFontCharacterMap = _pstMap;
@@ -1880,7 +1881,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   orxDisplay_GLFW_PrepareBitmap(_pstFont, _eSmoothing, _eBlendMode);
 
   /* For all characters */
-  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f;
+  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f, fLineHeight = 0.0f;
       u32CharacterCodePoint != orxCHAR_NULL;
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
@@ -1913,6 +1914,11 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         orxASSERT(orxText_GetMarkerScale(_hMarkerIterator, &vMarkerGlyphScale) == orxSTATUS_SUCCESS);
         break;
       }
+      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+      {
+        orxASSERT(orxText_GetMarkerLineHeight(_hMarkerIterator, &fLineHeight) == orxSTATUS_SUCCESS);
+        break;
+      }
       case orxTEXT_MARKER_TYPE_REVERT:
       {
         orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
@@ -1931,6 +1937,9 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
           break;
         case orxTEXT_MARKER_TYPE_SCALE:
           vMarkerGlyphScale = orxVECTOR_1;
+          break;
+        case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+          fLineHeight = fHeight;
           break;
         default:
           orxASSERT(orxFALSE, "Impossible marker revert type!");

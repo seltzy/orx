@@ -55,6 +55,7 @@ typedef enum __orxTEXT_MARKER_TYPE_t
   orxTEXT_MARKER_TYPE_COLOR,
   orxTEXT_MARKER_TYPE_SCALE,
   orxTEXT_MARKER_TYPE_REVERT,
+  orxTEXT_MARKER_TYPE_LINE_HEIGHT,
   orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
 } orxTEXT_MARKER_TYPE;
 
@@ -141,12 +142,13 @@ extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetFont(orxTEXT *_pstText, orx
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerCounter(orxTEXT *_pstText);
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_GetMarkerIterator(orxTEXT *_pstText);
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_NextMarker(orxHANDLE _hIterator);
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType);
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerIndex(orxHANDLE _hIterator);
 extern orxDLLAPI orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator);
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerFont(orxHANDLE _hIterator,  orxFONT const **_ppstFont);
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor);
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pstScale);
+extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight);
+extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType);
 
 #endif /* _orxTEXT_H_ */
 

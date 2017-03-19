@@ -102,6 +102,7 @@ typedef struct __orxTEXT_MARKER_DATA_t
     const orxFONT       *pstFont;
     orxRGBA              stRGBA;
     orxVECTOR            vScale;
+    orxFLOAT             fLineHeight;
     orxTEXT_MARKER_TYPE  eRevertType;
   };
 } orxTEXT_MARKER_DATA;
@@ -134,6 +135,7 @@ struct __orxTEXT_t
   orxFONT          *pstFont;                    /**< Font : 20 */
   orxBANK          *pstMarkerDatas;
   orxBANK          *pstMarkerCells;
+  orxLINKLIST       stMarkers;
   const orxSTRING   zString;                    /**< String : 24 */
   orxFLOAT          fWidth;                     /**< Width : 28 */
   orxFLOAT          fHeight;                    /**< Height : 32 */
@@ -261,7 +263,6 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_CreateMarkerData(const orxTEXT *
   pstResult->eType = _eType;
   return pstResult;
 }
-
 static orxTEXT_MARKER_STACK_ENTRY *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
 {
   orxASSERT(_pstStackBank != orxNULL);
@@ -278,7 +279,7 @@ static orxTEXT_MARKER_STACK_ENTRY *orxFASTCALL orxText_AddMarkerStackEntry(orxLI
 /** Add a marker cell
  *  This implicitly forms the ordered list of markers for traversal
  */
-static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData)
+static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData, orxTEXT_MARKER_CELL *_pstPrevMarker)
 {
   orxASSERT(_pstText != orxNULL);
   orxASSERT(_u32Index != orxU32_UNDEFINED);
@@ -291,9 +292,14 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(const orxTEXT *_ps
   pstResult->pstNext = orxNULL;
 
   /* Update the previous marker, setting its 'next' to this marker */
-  orxTEXT_MARKER_CELL *pstPrevMarker = orxBank_GetAtIndex(_pstText->pstMarkerCells, orxBank_GetIndex(_pstText->pstMarkerCells, pstResult) - 1);
+  orxTEXT_MARKER_CELL *pstPrevMarker = (_pstPrevMarker != orxNULL) ? _pstPrevMarker : orxBank_GetAtIndex(_pstText->pstMarkerCells, orxBank_GetIndex(_pstText->pstMarkerCells, pstResult) - 1);
   if (pstPrevMarker != orxNULL)
   {
+    /* If the previous marker had a next, it means we're inserting as opposed to appending */
+    if (pstPrevMarker->pstNext != orxNULL)
+    {
+      pstResult->pstNext = pstPrevMarker->pstNext;
+    }
     pstPrevMarker->pstNext = pstResult;
   }
 
@@ -334,7 +340,7 @@ static void orxFASTCALL orxText_PopMarker(const orxTEXT *_pstText, orxU32 _u32In
     }
   }
   /* Add a new marker using fallback data */
-  orxText_AddMarkerCell(_pstText, _u32Index, pstFallbackData);
+  orxText_AddMarkerCell(_pstText, _u32Index, pstFallbackData, orxNULL);
   /* Update the processors fallback data to be the newly added marker's data */
   /* This is either the popped marker's fallback data, or a placeholder for the user to interpret */
   *_ppstFallbackData = pstFallbackData;
@@ -615,7 +621,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       /* Push data to stack with fallback data */
       orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallbackData);
       /* Add a marker cell (implicitly represents final traversal order )*/
-      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData);
+      orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData, orxNULL);
       /* Update the fallback data pointer */
       *ppstFallbackData = pstData;
     }
@@ -850,6 +856,7 @@ static orxSTATUS orxFASTCALL orxText_EventHandler(const orxEVENT *_pstEvent)
 }
 
 /** Updates text size
+ *  This takes marker modifications into account
  * @param[in]   _pstText      Concerned text
  */
 static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
@@ -862,29 +869,29 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   {
 
     orxFLOAT        fWidth, fMaxWidth, fHeight, fMaxLineHeight, fCharacterHeight;
-    orxU32          u32CharacterCodePoint, u32CharacterIndex;
+    orxU32          u32CharacterCodePoint, u32CharacterIndex, u32LineStartIndex;
     orxVECTOR       vScale;
     const orxFONT  *pstFont;
-    orxHANDLE       hIterator;
+    orxHANDLE       hIterator, hPrevious;
     const orxCHAR  *pc;
 
-    /* Initialize default scale */
+    /* Initialize marker values */
+    hIterator = hPrevious = orxNULL;
     vScale = orxVECTOR_1;
     pstFont = _pstText->pstFont;
-    hIterator = orxNULL;
 
     /* Gets character height */
     fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
 
     /* For all characters */
-    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
+    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = u32LineStartIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
       /* Apply marker font/scale modifications */
       for ( hIterator = ((hIterator != orxNULL) ? hIterator : orxText_GetMarkerIterator(_pstText));
            (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32CharacterIndex);
-            hIterator = orxText_NextMarker(hIterator) )
+            hPrevious = hIterator, hIterator = orxText_NextMarker(hIterator) )
       {
         orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hIterator);
         /* New scale */
@@ -934,6 +941,14 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
         case orxCHAR_LF:
         {
+          /* Insert marker to identify max line height for rendering */
+          orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
+          pstData->fLineHeight = fMaxLineHeight;
+          orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstData, (orxTEXT_MARKER_CELL *) hPrevious);
+
+          /* Set next line start index */
+          u32LineStartIndex = u32CharacterIndex + 1;
+
           /* Updates height */
           fHeight += fMaxLineHeight;
 
@@ -945,7 +960,6 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
           /* Resets max line height */
           fMaxLineHeight = orxFLOAT_0;
-
           break;
         }
 
@@ -1473,6 +1487,22 @@ orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
   return hResult;
 }
 
+orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
+{
+  orxTEXT_MARKER_CELL *pstCell;
+  orxU32 u32Result;
+  if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
+  {
+    pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
+    u32Result = pstCell->u32Index;
+  }
+  else
+  {
+    u32Result = orxU32_UNDEFINED;
+  }
+  return u32Result;
+}
+
 orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
@@ -1556,20 +1586,24 @@ orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_p
   return eResult;
 }
 
-orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
+orxSTATUS orxFASTCALL orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight)
 {
-  orxTEXT_MARKER_CELL *pstCell;
-  orxU32 u32Result;
+  orxTEXT_MARKER_CELL *pstCell = orxNULL;
+  orxSTATUS eResult = orxSTATUS_FAILURE;
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
-    u32Result = pstCell->u32Index;
+    if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT))
+    {
+      *_pfHeight = pstCell->pstData->fLineHeight;
+      eResult = orxSTATUS_SUCCESS;
+    }
   }
   else
   {
-    u32Result = orxU32_UNDEFINED;
+    *_pfHeight = orxTEXT_MARKER_TYPE_NONE;
   }
-  return u32Result;
+  return eResult;
 }
 
 orxSTATUS orxFASTCALL orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType)
