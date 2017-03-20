@@ -1938,9 +1938,6 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         case orxTEXT_MARKER_TYPE_SCALE:
           vMarkerGlyphScale = orxVECTOR_1;
           break;
-        case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-          fLineHeight = fHeight;
-          break;
         default:
           orxASSERT(orxFALSE, "Impossible marker revert type!");
         }
