@@ -100,6 +100,15 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
         }
         break;
       }
+      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+      {
+        orxFLOAT fHeight;
+        if (orxText_GetMarkerLineHeight(hIterator, &fHeight) == orxSTATUS_SUCCESS)
+        {
+          orxLOG("Hit %s Marker @%u %f", "line height", u32Index, fHeight);
+        }
+        break;
+      }
       case orxTEXT_MARKER_TYPE_REVERT:
       {
         orxSTRING zRevertType = "null";
