@@ -890,16 +890,21 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     orxU32          u32CharacterCodePoint, u32CharacterIndex, u32LineStartIndex;
     orxVECTOR       vScale;
     const orxFONT  *pstFont;
-    orxHANDLE       hIterator, hPrevious;
+    orxHANDLE       hIterator;
+    orxTEXT_MARKER_DATA *pstLineStartMarkerData;
     const orxCHAR  *pc;
 
     /* Initialize marker values */
-    hIterator = hPrevious = orxNULL;
+    hIterator = orxNULL;
     vScale = orxVECTOR_1;
     pstFont = _pstText->pstFont;
 
     /* Gets character height */
     fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
+
+    /* Insert marker to identify max line height for rendering */
+    pstLineStartMarkerData =  orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
+    orxText_AddMarkerCell(_pstText, 0, pstLineStartMarkerData, orxTRUE);
 
     /* For all characters */
     for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = u32LineStartIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
@@ -959,14 +964,13 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
         case orxCHAR_LF:
         {
-          /* Insert marker to identify max line height for rendering */
-          orxTEXT_MARKER_DATA *pstData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
-          pstData->fLineHeight = fMaxLineHeight;
-          /* EDGE CASE BUG: Final line isn't getting a marker */
-          orxTEXT_MARKER_CELL *pstCell = orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstData, orxTRUE);
 
           /* Set next line start index */
           u32LineStartIndex = u32CharacterIndex + 1;
+
+          pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
+          pstLineStartMarkerData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
+          orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstLineStartMarkerData, orxTRUE);
 
           /* Updates height */
           fHeight += fMaxLineHeight;
@@ -978,7 +982,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           fWidth = orxFLOAT_0;
 
           /* Resets max line height */
-          fMaxLineHeight = orxFLOAT_0;
+          fMaxLineHeight = fCharacterHeight * vScale.fY;
           break;
         }
 
