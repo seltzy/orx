@@ -1881,7 +1881,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   orxDisplay_GLFW_PrepareBitmap(_pstFont, _eSmoothing, _eBlendMode);
 
   /* For all characters */
-  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f, fLineHeight = 0.0f;
+  for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f, fLineHeight = fHeight;
       u32CharacterCodePoint != orxCHAR_NULL;
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
