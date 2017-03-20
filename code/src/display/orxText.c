@@ -288,6 +288,7 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
   /* Allocate and initialize marker call */
   orxTEXT_MARKER_CELL *pstResult = (orxTEXT_MARKER_CELL *) orxBank_Allocate(_pstText->pstMarkerCells);
   orxASSERT(pstResult != orxNULL);
+  orxMemory_Zero(pstResult, sizeof(orxTEXT_MARKER_CELL));
   pstResult->u32Index = _u32Index;
   pstResult->pstData = _pstData;
 
