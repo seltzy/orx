@@ -300,11 +300,11 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
            ; pstNode = orxLinkList_GetNext(pstNode))
     {
       pstCell = (orxTEXT_MARKER_CELL *) pstNode;
-      if (_u32Index < pstCell->u32Index)
+      if (_u32Index <= pstCell->u32Index)
       {
-        pstCell = (orxTEXT_MARKER_CELL *) orxLinkList_GetPrevious(pstNode);
         break;
       }
+      pstCell = orxNULL;
     }
     if (pstCell == orxNULL)
     {
