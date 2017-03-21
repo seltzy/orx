@@ -1957,6 +1957,8 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         {
           /* Updates pointer */
           pc++;
+          /* Increment character index */
+          u32CharacterIndex++;
         }
 
         /* Fall through */

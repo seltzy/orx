@@ -300,7 +300,7 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
            ; pstNode = orxLinkList_GetNext(pstNode))
     {
       pstCell = (orxTEXT_MARKER_CELL *) pstNode;
-      if (_u32Index <= pstCell->u32Index)
+      if (_u32Index < pstCell->u32Index)
       {
         break;
       }
@@ -903,11 +903,12 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
 
     /* Insert marker to identify max line height for rendering */
+    u32LineStartIndex = 0;
     pstLineStartMarkerData =  orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
-    orxText_AddMarkerCell(_pstText, 0, pstLineStartMarkerData, orxTRUE);
+    orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstLineStartMarkerData, orxTRUE);
 
     /* For all characters */
-    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = u32LineStartIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
+    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = fMaxLineHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
@@ -957,6 +958,8 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           {
             /* Updates pointer */
             pc++;
+            /* Increment character index */
+            u32CharacterIndex++;
           }
 
           /* Fall through */
@@ -981,8 +984,6 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* Resets width */
           fWidth = orxFLOAT_0;
 
-          /* Resets max line height */
-          fMaxLineHeight = fCharacterHeight * vScale.fY;
           break;
         }
 
@@ -991,17 +992,18 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* Updates width */
           fWidth += orxFont_GetCharacterWidth(pstFont, u32CharacterCodePoint) * vScale.fX;
 
-          /* Increment character index */
-          u32CharacterIndex++;
-
           break;
         }
       }
+
+      /* Increment character index */
+      u32CharacterIndex++;
     }
 
     /* Stores values */
     _pstText->fWidth  = orxMAX(fWidth, fMaxWidth);
     _pstText->fHeight = fHeight;
+    pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
   }
   else
   {
