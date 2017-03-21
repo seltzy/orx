@@ -1985,7 +1985,8 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
         pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(pstMarkerFontCharacterMap->pstCharacterTable, u32CharacterCodePoint);
         /* Gets character render height */
         fGlyphRenderHeight = fHeight * vMarkerGlyphScale.fY;
-        orxFLOAT fHeightOffset = (fLineHeight/2 - fGlyphRenderHeight/2);
+        /* Calculate height offset the scale Z positions the glyph with respect to the line height. 0.5 would center the glyph's center in line height. 1 would put it at the bottom. 0 would put it at the top. */
+        orxFLOAT fHeightOffset = (fLineHeight - fGlyphRenderHeight) * (vMarkerGlyphScale.fZ);
 
         /* Valid? */
         if(pstGlyph != orxNULL)
