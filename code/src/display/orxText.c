@@ -944,7 +944,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
         /* Update character height based on font */
         fCharacterHeight = orxFont_GetCharacterHeight(pstFont);
         /* Update max line height using font character height and scale */
-        fMaxLineHeight = orxMAX(fMaxLineHeight, fCharacterHeight * vScale.fY);
+        pstLineStartMarkerData->fLineHeight = fMaxLineHeight = orxMAX(fMaxLineHeight, fCharacterHeight * vScale.fY);
       }
 
       /* Depending on character */
@@ -966,8 +966,6 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
         case orxCHAR_LF:
         {
-          /* Update this (now ending) line's max height data */
-          pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
           /* Create line height marker for next line */
           pstLineStartMarkerData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
           u32LineStartIndex = u32CharacterIndex + 1;
