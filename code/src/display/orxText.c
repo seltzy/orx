@@ -292,32 +292,31 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
   pstResult->u32Index = _u32Index;
   pstResult->pstData = _pstData;
 
-  if (bSeekInsertion)
+  if (bSeekInsertion && (orxLinkList_GetCounter(&_pstText->stMarkers) > 0))
   {
-    orxTEXT_MARKER_CELL *pstCell = orxNULL;
-    for (orxLINKLIST_NODE *pstNode = orxLinkList_GetFirst(&_pstText->stMarkers)
-           ; pstNode != orxNULL
-           ; pstNode = orxLinkList_GetNext(pstNode))
+    orxHANDLE pstMarker = orxNULL;
+    for (pstMarker = orxText_GetMarkerIterator(_pstText)
+           ; (pstMarker != orxNULL) && (pstMarker != orxHANDLE_UNDEFINED)
+           ; pstMarker = orxText_NextMarker(pstMarker))
     {
-      pstCell = (orxTEXT_MARKER_CELL *) pstNode;
-      if (_u32Index < pstCell->u32Index)
+      orxTEXT_MARKER_CELL *pstCell = (orxTEXT_MARKER_CELL *) pstMarker;
+      if (_u32Index <= pstCell->u32Index)
       {
         break;
       }
-      pstCell = orxNULL;
     }
-    if (pstCell == orxNULL)
+    if ((pstMarker != orxNULL) && (pstMarker != orxHANDLE_UNDEFINED))
     {
-      orxLinkList_AddStart(&_pstText->stMarkers, (orxLINKLIST_NODE *) pstResult);
+      orxASSERT(orxLinkList_AddBefore((orxLINKLIST_NODE *)pstMarker, (orxLINKLIST_NODE *)pstResult) == orxSTATUS_SUCCESS);
     }
     else
     {
-      orxLinkList_AddBefore((orxLINKLIST_NODE *) pstCell, (orxLINKLIST_NODE *) pstResult);
+      orxASSERT(orxLinkList_AddEnd(&_pstText->stMarkers, (orxLINKLIST_NODE *) pstResult) == orxSTATUS_SUCCESS);
     }
   }
   else
   {
-    orxLinkList_AddEnd(&_pstText->stMarkers, (orxLINKLIST_NODE *) pstResult);
+    orxASSERT(orxLinkList_AddEnd(&_pstText->stMarkers, (orxLINKLIST_NODE *)pstResult) == orxSTATUS_SUCCESS);
   }
 
   return pstResult;
