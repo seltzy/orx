@@ -966,12 +966,11 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
         case orxCHAR_LF:
         {
-
-          /* Set next line start index */
-          u32LineStartIndex = u32CharacterIndex + 1;
-
+          /* Update this (now ending) line's max height data */
           pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
+          /* Create line height marker for next line */
           pstLineStartMarkerData = orxText_CreateMarkerData(_pstText, orxTEXT_MARKER_TYPE_LINE_HEIGHT);
+          u32LineStartIndex = u32CharacterIndex + 1;
           orxText_AddMarkerCell(_pstText, u32LineStartIndex, pstLineStartMarkerData, orxTRUE);
 
           /* Updates height */
@@ -982,6 +981,11 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
           /* Resets width */
           fWidth = orxFLOAT_0;
+
+          /* Resets max line height to whatever the current scaled glyph height is */
+          fMaxLineHeight = fCharacterHeight * vScale.fY;
+          /* Default the line height value for the next line in case it's the last line */
+          pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
 
           break;
         }
@@ -1002,7 +1006,6 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     /* Stores values */
     _pstText->fWidth  = orxMAX(fWidth, fMaxWidth);
     _pstText->fHeight = fHeight;
-    pstLineStartMarkerData->fLineHeight = fMaxLineHeight;
   }
   else
   {
