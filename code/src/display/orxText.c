@@ -220,7 +220,7 @@ static orxSTATUS orxFASTCALL orxText_ValidateMarkers(const orxTEXT *_pstText, or
   orxHANDLE hIterator;
   if (orxBank_GetCounter(_pstText->pstMarkerCells) == orxLinkList_GetCounter(&_pstText->stMarkers))
   {
-    for (hIterator = orxText_GetMarkerIterator(_pstText);
+    for (hIterator = orxText_FirstMarker(_pstText);
          (hIterator != orxNULL) && (hIterator != orxHANDLE_UNDEFINED);
          hIterator = orxText_NextMarker(hIterator))
     {
@@ -417,7 +417,7 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
   if (_bSeekInsertion && (orxLinkList_GetCounter(&_pstText->stMarkers) > 0))
   {
     orxHANDLE pstMarker = orxNULL;
-    for (pstMarker = orxText_GetMarkerIterator(_pstText)
+    for (pstMarker = orxText_FirstMarker(_pstText)
            ; (pstMarker != orxNULL) && (pstMarker != orxHANDLE_UNDEFINED)
            ; pstMarker = orxText_NextMarker(pstMarker))
     {
@@ -1045,7 +1045,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
       /* Apply marker font/scale modifications */
-      for ( hIterator = ((hIterator != orxNULL) ? hIterator : orxText_GetMarkerIterator(_pstText));
+      for ( hIterator = ((hIterator != orxNULL) ? hIterator : orxText_FirstMarker(_pstText));
            (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32CharacterIndex);
             hIterator = orxText_NextMarker(hIterator) )
       {
@@ -1610,7 +1610,7 @@ orxSTATUS orxFASTCALL orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont)
 /** Get handle to iterate markers starting with the first
  *  Returns orxHANDLE_UNDEFINED if no markers exist.
  */
-orxHANDLE orxFASTCALL orxText_GetMarkerIterator(const orxTEXT *_pstText)
+orxHANDLE orxFASTCALL orxText_FirstMarker(const orxTEXT *_pstText)
 {
   /* Checks */
   orxASSERT(sstText.u32Flags & orxTEXT_KU32_STATIC_FLAG_READY);

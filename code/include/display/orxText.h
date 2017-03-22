@@ -143,7 +143,7 @@ extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetFont(orxTEXT *_pstText, orx
  * @param[in]   _pstText    Concerned text
  * @return      Marker handle / orxHANDLE_UNDEFINED
  */
-extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_GetMarkerIterator(const orxTEXT *_pstText);
+extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_FirstMarker(const orxTEXT *_pstText);
 
 /** Gets next marker
  * @param[in]   _hIterator    Current marker

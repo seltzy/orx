@@ -55,7 +55,7 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
 {
   const orxSTRING zString = orxText_GetString(_pstText);
   orxHANDLE hMarker = orxHANDLE_UNDEFINED;
-  orxHANDLE hIterator = orxText_GetMarkerIterator(_pstText);
+  orxHANDLE hIterator = orxText_FirstMarker(_pstText);
   orxLOG("Testing markers for \"%s\"", zString);
   for (orxU32 u32Index = 0; u32Index < orxString_GetLength(zString); u32Index++)
   {
