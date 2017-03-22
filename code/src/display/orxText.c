@@ -1730,23 +1730,23 @@ orxSTATUS orxFASTCALL orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pst
   return eResult;
 }
 
-orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pstScale)
+orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pvScale)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;
   orxSTATUS eResult = orxSTATUS_FAILURE;
-  orxASSERT(_pstScale != orxNULL);
+  orxASSERT(_pvScale != orxNULL);
   if ((_hIterator != orxNULL) && (_hIterator != orxHANDLE_UNDEFINED))
   {
     pstCell = (orxTEXT_MARKER_CELL *) _hIterator;
     if ((pstCell->pstData != orxNULL) && (pstCell->pstData->eType == orxTEXT_MARKER_TYPE_SCALE))
     {
-      *_pstScale = pstCell->pstData->vScale;
+      *_pvScale = pstCell->pstData->vScale;
       eResult = orxSTATUS_SUCCESS;
     }
   }
   else
   {
-    *_pstScale = orxVECTOR_1;
+    *_pvScale = orxVECTOR_1;
   }
   return eResult;
 }
@@ -1767,7 +1767,7 @@ orxSTATUS orxFASTCALL orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT
   }
   else
   {
-    *_pfHeight = orxTEXT_MARKER_TYPE_NONE;
+    *_pfHeight = orxFLOAT_0;
   }
   return eResult;
 }

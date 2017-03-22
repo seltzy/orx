@@ -156,11 +156,46 @@ extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_NextMarker(orxHANDLE _h
  * @return      Marker index / orxU32_UNDEFINED
  */
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerIndex(orxHANDLE _hIterator);
+
+/** Gets marker type
+ * @param[in]   _hIterator    Marker handle
+ * @return      Marker type
+ */
 extern orxDLLAPI orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator);
+
+/** Gets marker font
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstFont     Marker font pointer / orxNULL
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerFont(orxHANDLE _hIterator,  orxFONT const **_ppstFont);
+
+/** Gets marker color
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _pstColor     Marker color / White
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor);
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pstScale);
+
+/** Gets marker scale
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _pvScale      Marker scale / orxVECTOR_1
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
+extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pvScale);
+
+/** Gets marker line height
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstScale    Marker line height / orxFLOAT_0
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight);
+
+/** Gets marker revert type
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstScale    Marker revert type / orxTEXT_MARKER_TYPE_NONE
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType);
 
 #endif /* _orxTEXT_H_ */
