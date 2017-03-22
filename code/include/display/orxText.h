@@ -59,9 +59,6 @@ typedef enum __orxTEXT_MARKER_TYPE_t
   orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
 } orxTEXT_MARKER_TYPE;
 
-/** Internal marker iterator structure */
-typedef struct __orxTEXT_MARKER_WALKER_t   orxTEXT_MARKER_WALKER;
-
 /** Internal text structure */
 typedef struct __orxTEXT_t                   orxTEXT;
 
