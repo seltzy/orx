@@ -71,14 +71,15 @@
 #define orxTEXT_KZ_CONFIG_FONT                "Font"
 
 #define orxTEXT_KC_LOCALE_MARKER              '$'
-#define orxTEXT_KC_MARKER_SYNTAX_OPEN         '<'
-#define orxTEXT_KC_MARKER_SYNTAX_CLOSE        '>'
-#define orxTEXT_KC_MARKER_SYNTAX_ASSIGN       '='
-#define orxTEXT_KZ_MARKER_TYPE_FONT           "font"
-#define orxTEXT_KZ_MARKER_TYPE_COLOR          "color"
-#define orxTEXT_KZ_MARKER_TYPE_SCALE          "scale"
-#define orxTEXT_KZ_MARKER_TYPE_POP            "!"
-#define orxTEXT_KZ_MARKER_TYPE_CLEAR          "*"
+
+#define orxTEXT_KC_STYLE_MARKER               '`'
+#define orxTEXT_KC_STYLE_SYNTAX_OPEN          '('
+#define orxTEXT_KC_STYLE_SYNTAX_CLOSE         ')'
+#define orxTEXT_KZ_STYLE_TYPE_FONT            "font"
+#define orxTEXT_KZ_STYLE_TYPE_COLOR           "color"
+#define orxTEXT_KZ_STYLE_TYPE_SCALE           "scale"
+#define orxTEXT_KZ_STYLE_TYPE_POP             "!"
+#define orxTEXT_KZ_STYLE_TYPE_CLEAR           "*"
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
 #define orxTEXT_KU32_MARKER_BANK_SIZE         128         /**< Bank size */
