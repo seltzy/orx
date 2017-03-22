@@ -570,6 +570,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *
   }
   return pstResult;
 }
+
 /** Process markers out of the text string, storing the markers in a list and returning an unmarked string
  * @param[in] _pstText    Concerned text
  * @param[in] _zString    Unprocessed string
@@ -615,7 +616,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   pstDryRunBank    = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_STACK_ENTRY),
                                     orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
-  /* TODO: Implement escapes for markers? */
+  /* Parse the string using zMarkedString as a pointer to our current position in _zString */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
   {
     orxU32 u32StoreSize = 0;
