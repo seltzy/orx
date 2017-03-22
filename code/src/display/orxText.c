@@ -72,18 +72,18 @@
 
 #define orxTEXT_KC_LOCALE_MARKER              '$'
 
-#define orxTEXT_KC_STYLE_MARKER               '`'
-#define orxTEXT_KC_STYLE_SYNTAX_OPEN          '('
-#define orxTEXT_KC_STYLE_SYNTAX_CLOSE         ')'
-#define orxTEXT_KZ_STYLE_TYPE_FONT            "font"
-#define orxTEXT_KZ_STYLE_TYPE_COLOR           "color"
-#define orxTEXT_KZ_STYLE_TYPE_SCALE           "scale"
-#define orxTEXT_KZ_STYLE_TYPE_POP             "!"
-#define orxTEXT_KZ_STYLE_TYPE_CLEAR           "*"
+#define orxTEXT_KC_MARKER_SYNTAX_START        '`'
+#define orxTEXT_KC_MARKER_SYNTAX_OPEN         '('
+#define orxTEXT_KC_MARKER_SYNTAX_CLOSE        ')'
+#define orxTEXT_KZ_MARKER_TYPE_FONT           "font"
+#define orxTEXT_KZ_MARKER_TYPE_COLOR          "color"
+#define orxTEXT_KZ_MARKER_TYPE_SCALE          "scale"
+#define orxTEXT_KZ_MARKER_TYPE_POP            "!"
+#define orxTEXT_KZ_MARKER_TYPE_CLEAR          "*"
 
 #define orxTEXT_KU32_BANK_SIZE                256         /**< Bank size */
-#define orxTEXT_KU32_MARKER_BANK_SIZE         128         /**< Bank size */
-#define orxTEXT_KU32_STYLE_BANK_SIZE          128         /**< Bank size */
+#define orxTEXT_KU32_MARKER_CELL_BANK_SIZE    128         /**< Bank size */
+#define orxTEXT_KU32_MARKER_DATA_BANK_SIZE    128         /**< Bank size */
 
 
 /***************************************************************************
@@ -614,7 +614,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxASSERT(zCleanedString != orxNULL);
   orxMemory_Zero(zCleanedString, u32CleanedSize * sizeof(orxCHAR));
 
-  pstDryRunBank    = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_STACK_ENTRY),
+  pstDryRunBank    = orxBank_Create(orxTEXT_KU32_MARKER_DATA_BANK_SIZE, sizeof(orxTEXT_MARKER_STACK_ENTRY),
                                     orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
 
   /* Parse the string using zMarkedString as a pointer to our current position in _zString */
@@ -1324,9 +1324,9 @@ orxTEXT *orxFASTCALL orxText_Create()
     /* Inits it */
     pstResult->zString    = orxNULL;
     pstResult->pstFont    = orxNULL;
-    pstResult->pstMarkerDatas  = orxBank_Create(orxTEXT_KU32_STYLE_BANK_SIZE, sizeof(orxTEXT_MARKER_DATA),
+    pstResult->pstMarkerDatas  = orxBank_Create(orxTEXT_KU32_MARKER_DATA_BANK_SIZE, sizeof(orxTEXT_MARKER_DATA),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
-    pstResult->pstMarkerCells = orxBank_Create(orxTEXT_KU32_MARKER_BANK_SIZE, sizeof(orxTEXT_MARKER_CELL),
+    pstResult->pstMarkerCells = orxBank_Create(orxTEXT_KU32_MARKER_CELL_BANK_SIZE, sizeof(orxTEXT_MARKER_CELL),
                                            orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
     orxMemory_Zero(&pstResult->stMarkers, sizeof(orxLINKLIST));
 
