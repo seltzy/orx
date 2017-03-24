@@ -219,7 +219,7 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
  *  If this method fails, check the bad marker and its adjacent ones for discrepancies
  * @param[in]   _pstText      Concerned text
  * @param[out]  _phBadMarker  Failed marker
- * @return      orxSTATUS
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 static orxSTATUS orxFASTCALL orxText_ValidateMarkers(const orxTEXT *_pstText, orxHANDLE *_phBadMarker)
 {
@@ -570,6 +570,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *
       /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
       if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_SUCCESS)
       {
+        orxVector_Mulf(&vColor, &vColor, orxCOLOR_NORMALIZER);
         orxCOLOR stColor = {vColor, 1.0f};
         pstResult->stRGBA = orxColor_ToRGBA(&stColor);
         break;
@@ -588,6 +589,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *
       }
       /* Fall through */
     }
+    /* Handle invalid values/types */
     default:
       /* Delete allocated data */
       orxMemory_Free(pstResult);
@@ -629,24 +631,31 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     eResult = orxTEXT_MARKER_TYPE_NONE;
   }
 
-  /* Ensure the next char is valid */
-  switch(eResult)
+  if (eResult != orxTEXT_MARKER_TYPE_NONE)
   {
-  case orxTEXT_MARKER_TYPE_COLOR:
-  case orxTEXT_MARKER_TYPE_FONT:
-  case orxTEXT_MARKER_TYPE_SCALE:
-    /* Assignment types */
-    if (**_pzNextToken != orxTEXT_KC_MARKER_SYNTAX_OPEN)
+    /* Ensure the next char is valid */
+    switch(eResult)
     {
+    /* Marker types with a value are expected to be followed by an opening char */
+    case orxTEXT_MARKER_TYPE_COLOR:
+    case orxTEXT_MARKER_TYPE_FONT:
+    case orxTEXT_MARKER_TYPE_SCALE:
+      if (**_pzNextToken != orxTEXT_KC_MARKER_SYNTAX_OPEN)
+      {
+        eResult = orxTEXT_MARKER_TYPE_NONE;
+      }
+      break;
+
+    /* Stack modifiers don't have any special chars after them */
+    case orxTEXT_MARKER_TYPE_POP:
+    case orxTEXT_MARKER_TYPE_CLEAR:
+      break;
+
+    /* Anything else is considered impossible */
+    default:
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "WARNING: Invalid marker type was specified!");
       eResult = orxTEXT_MARKER_TYPE_NONE;
     }
-    break;
-  case orxTEXT_MARKER_TYPE_POP:
-  case orxTEXT_MARKER_TYPE_CLEAR:
-    /* Stack modifiers */
-    break;
-  default:
-    eResult = orxTEXT_MARKER_TYPE_NONE;
   }
 
   /* Done */
