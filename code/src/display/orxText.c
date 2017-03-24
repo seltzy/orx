@@ -504,78 +504,98 @@ static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, c
  * @param[in]      _pstText             Concerned text
  * @param[in]      _eType               Expected marker data type
  * @param[in]      _zValueStart         Pointer to the beginning of the marker value string
- * @param[in]      _u32ValueStringSize  Size of the marker value string
+ * @param[out]     _pzRemainder         Where to store pointer to remainder of string.
  * @return         orxTEXT_MARKER_DATA  / orxNULL
  */
-static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, orxTEXT_MARKER_TYPE _eType, const orxSTRING _zValueStart, orxU32 _u32ValueStringSize)
+static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, orxTEXT_MARKER_TYPE _eType, const orxSTRING _zValueStart, const orxSTRING *_pzRemainder)
 {
   orxSTRUCTURE_ASSERT(_pstText);
-  orxASSERT((_zValueStart != orxNULL) && (_zValueStart != orxSTRING_EMPTY));
-  orxASSERT((_u32ValueStringSize != orxU32_UNDEFINED) && (_u32ValueStringSize > 0));
+  orxASSERT(_eType != orxTEXT_MARKER_TYPE_NONE);
+  orxASSERT((_zValueStart != orxNULL) && (_zValueStart != orxSTRING_EMPTY) && (*_zValueStart == orxTEXT_KC_MARKER_SYNTAX_OPEN));
+  orxASSERT(_pzRemainder != orxNULL);
 
-  orxTEXT_MARKER_DATA *pstResult = orxText_CreateMarkerData(_pstText, _eType);
+  orxTEXT_MARKER_DATA *pstResult;
 
-  /* Make a temporary string to hold the value alone */
+  /* Figure out where the value ends */
+  orxS32 s32EndIndex = orxString_SearchCharIndex(_zValueStart, orxTEXT_KC_MARKER_SYNTAX_CLOSE, 0);
 
+  /* No end? Bad marker! */
+  if (s32EndIndex < 0)
+  {
+    pstResult = orxNULL;
+    *_pzRemainder = _zValueStart;
+  }
+  else
+  {
+    /* Allocate some marker data */
+    pstResult = orxText_CreateMarkerData(_pstText, _eType);
+    /* Set remainder pointer */
+    *_pzRemainder = _zValueStart + s32EndIndex + 1;
+
+    /* Make a temporary string to hold the value alone */
+    orxU32 u32ValueStringSize = (s32EndIndex + 1);
 #ifdef __orxMSVC__
-
-  orxCHAR *zValueString = (orxCHAR *)alloca(_u32ValueStringSize * sizeof(orxCHAR));
-
+    orxCHAR *zValueString = (orxCHAR *)alloca(u32ValueStringSize * sizeof(orxCHAR));
 #else /* __orxMSVC__ */
-
-  orxCHAR zValueString[_u32ValueStringSize];
-
+    orxCHAR zValueString[u32ValueStringSize];
 #endif /* __orxMSVC__ */
 
-  orxString_NCopy(zValueString, _zValueStart, _u32ValueStringSize);
-  zValueString[_u32ValueStringSize - 1] = orxCHAR_NULL;
+    orxString_NCopy(zValueString, _zValueStart, u32ValueStringSize);
+    zValueString[u32ValueStringSize - 1] = orxCHAR_NULL;
 
-  /* Check style values */
-  switch(_eType)
-  {
-  /* Attempt to store font style */
-  case orxTEXT_MARKER_TYPE_FONT:
-  {
-    const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString);
-    /* EDGE CASE: Handle invalid/missing font */
-    if (pstFont != orxNULL)
+    /* Check style values - if something is invalid, fall through to default */
+    switch(_eType)
     {
-      /* If everything checks out, store the font and continue */
-      pstResult->pstFont = pstFont;
-      break;
-    }
-    /* Fall through */
-  }
-  /* Attempt to store color style */
-  case orxTEXT_MARKER_TYPE_COLOR:
-  {
-    orxVECTOR vColor = {0};
-    /* EDGE CASE: Handle invalid/missing color */
-    /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
-    if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_SUCCESS)
+      /* Attempt to store font style */
+    case orxTEXT_MARKER_TYPE_FONT:
     {
-      orxCOLOR stColor = {vColor, 1.0f};
-      pstResult->stRGBA = orxColor_ToRGBA(&stColor);
-      break;
+      /* Modify the value string to exclude surrounding chars */
+      zValueString[u32ValueStringSize - 2] = orxCHAR_NULL;
+      zValueString++;
+      /* Try and get the font */
+      const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString);
+      /* EDGE CASE: Handle invalid/missing font */
+      if (pstFont != orxNULL)
+      {
+        /* If everything checks out, store the font and continue */
+        pstResult->pstFont = pstFont;
+        break;
+      }
+      /* Fall through */
     }
-    /* Fall through */
-  }
-  /* Attempt to store scale style */
-  case orxTEXT_MARKER_TYPE_SCALE:
-  {
-    orxVECTOR vScale = {0};
-    /* EDGE CASE: Handle invalid/missing scale */
-    if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_SUCCESS)
+    /* Attempt to store color style */
+    case orxTEXT_MARKER_TYPE_COLOR:
     {
-      orxVector_Copy(&(pstResult->vScale), &vScale);
-      break;
+      orxVECTOR vColor = {0};
+      /* EDGE CASE: Handle invalid/missing color */
+      /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
+      if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_SUCCESS)
+      {
+        orxCOLOR stColor = {vColor, 1.0f};
+        pstResult->stRGBA = orxColor_ToRGBA(&stColor);
+        break;
+      }
+      /* Fall through */
     }
-    /* Fall through */
-  }
-  default:
-    /* Delete allocated data */
-    orxMemory_Free(pstResult);
-    pstResult = orxNULL;
+    /* Attempt to store scale style */
+    case orxTEXT_MARKER_TYPE_SCALE:
+    {
+      orxVECTOR vScale = {0};
+      /* EDGE CASE: Handle invalid/missing scale */
+      if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_SUCCESS)
+      {
+        orxVector_Copy(&(pstResult->vScale), &vScale);
+        break;
+      }
+      /* Fall through */
+    }
+    default:
+      /* Delete allocated data */
+      orxMemory_Free(pstResult);
+      /* Set results accordingly */
+      pstResult = orxNULL;
+      *_pzNextToken = _zValueStart;
+    }
   }
   return pstResult;
 }
@@ -757,34 +777,36 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         }
         else
         {
-          orxASSERT(*zMarkedString == orxTEXT_KC_MARKER_SYNTAX_OPEN);
           /* This marker has data associated with it */
-
-          const orxSTRING zMarkerEnd = orxString_SearchChar(zMarkedString, orxTEXT_KC_MARKER_SYNTAX_CLOSE);
-
-          /* Skip to the value */
-          zNextToken = orxString_SkipWhiteSpaces(zNextToken + 1);
-
-          /* Get the size of the value string */
-          orxU32 u32ValueStringSize = (orxU32)(zMarkerEnd - zNextToken + 1) * (orxU32)sizeof(orxCHAR);
-          /* Parse the marker value into marker data */
-          orxTEXT_MARKER_DATA *pstData = orxText_ParseMarkerValue(_pstText, eType, zNextToken, u32ValueStringSize);
-          /* Add/Push marker */
-          if (pstData != orxNULL)
+          orxTEXT_MARKER_DATA *pstData = orxNULL;
+          if (*zMarkedString == orxTEXT_KC_MARKER_SYNTAX_OPEN)
           {
-            /* The type we plan to store will determine which fallback pointer needs to be updated */
-            const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
-            ppstFallbackData = orxText_GetMarkerFallbackPointer(eType, &stFallbacks);
-            /* Fallback data cannot be null if the data was of a valid type */
-            orxASSERT(ppstFallbackData);
+            /* Parse the marker value into marker data */
+            pstData = orxText_ParseMarkerValue(_pstText, eType, zMarkedString, &zMarkedString);
+            /* Add/Push marker */
+            if (pstData != orxNULL)
+            {
+              /* The type we plan to store will determine which fallback pointer needs to be updated */
+              const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
+              ppstFallbackData = orxText_GetMarkerFallbackPointer(eType, &stFallbacks);
+              /* Fallback data cannot be null if the data was of a valid type */
+              orxASSERT(ppstFallbackData);
 
-            /* Push data to stack with fallback data */
-            orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallbackData);
-            /* Add a marker cell (implicitly represents final traversal order )*/
-            orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData, orxFALSE);
-            /* Update the fallback data pointer */
-            *ppstFallbackData = pstData;
+              /* Push data to stack with fallback data */
+              orxTEXT_MARKER_STACK_ENTRY *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunBank, pstData, *ppstFallbackData);
+              /* Add a marker cell (implicitly represents final traversal order )*/
+              orxTEXT_MARKER_CELL *pstMarker = orxText_AddMarkerCell(_pstText, u32CleanedSizeUsed, pstData, orxFALSE);
+              /* Update the fallback data pointer */
+              *ppstFallbackData = pstData;
+            }
           }
+          /* Well this can't be right... */
+          if (pstData == orxNULL)
+          {
+            orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "WARNING: Invalid marker data!");
+          }
+          /* Continue parsing */
+          zMarkedString++;
         }
       }
     }
