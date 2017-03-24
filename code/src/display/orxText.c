@@ -593,7 +593,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *
       orxMemory_Free(pstResult);
       /* Set results accordingly */
       pstResult = orxNULL;
-      *_pzRemainder = _zValueStart;
+      *_pzRemainder = _zValueStart + u32ValueStringSize;
     }
   }
   return pstResult;
@@ -747,7 +747,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           }
 
           /* Continue parsing */
-          zMarkedString++;
+          /* zMarkedString++; */
         }
         else if (eType == orxTEXT_MARKER_TYPE_CLEAR)
         {
@@ -774,7 +774,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           orxASSERT(stFallbacks.pstScale == orxNULL || (stFallbacks.pstScale != orxNULL) && (stFallbacks.pstScale->eType == orxTEXT_MARKER_TYPE_REVERT));
 
           /* Continue parsing */
-          zMarkedString++;
+          /* zMarkedString++; */
         }
         else
         {
