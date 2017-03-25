@@ -631,7 +631,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     eResult = orxTEXT_MARKER_TYPE_NONE;
   }
 
-  if (eResult != orxTEXT_MARKER_TYPE_NONE)
+  /* if (eResult != orxTEXT_MARKER_TYPE_NONE) */
   {
     /* Ensure the next char is valid */
     switch(eResult)
@@ -653,8 +653,25 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
 
     /* Anything else is considered impossible */
     default:
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "WARNING: Invalid marker type was specified!");
       eResult = orxTEXT_MARKER_TYPE_NONE;
+      /* Skip to next whitespace character */
+      const orxSTRING zNextWhitespace = _zString;
+      while ((*zNextWhitespace != ' ') && (*zNextWhitespace != '\t') &&
+             (*zNextWhitespace != orxCHAR_CR) && (*zNextWhitespace != orxCHAR_LF) &&
+             (*zNextWhitespace != orxCHAR_NULL))
+      {
+        zNextWhitespace++;
+      }
+      orxU32 u32ValueStringSize = (orxU32)(zNextWhitespace - _zString + 1);
+      /* Make a temporary string to hold the bad value */
+#ifdef __orxMSVC__
+      orxCHAR *zValueString = (orxCHAR *)alloca(u32ValueStringSize * sizeof(orxCHAR));
+#else /* __orxMSVC__ */
+      orxCHAR zValueString[u32ValueStringSize];
+#endif /* __orxMSVC__ */
+      orxString_NCopy(zValueString, _zString, u32ValueStringSize - 1);
+      zValueString[u32ValueStringSize - 1] = orxCHAR_NULL;
+      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, "WARNING: Invalid text marker [%s] specified!", zValueString);
     }
   }
 
