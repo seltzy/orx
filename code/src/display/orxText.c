@@ -93,7 +93,7 @@
 
 /** Marker format data
  *  Capable of being shared between multiple markers.
- *  TODO: Either reuse these between multiple markers, or integrate with orxTEXT_MARKER_CELL. I hope to accomplish this by essentially interpreting this struct as a string and using that as a key. The only potential issue is the vScale consisting of floating point members, which might be solved by instead representing it as a string or fixed-point vector.
+ *  TODO: Either reuse these between multiple markers, or integrate with orxTEXT_MARKER_CELL. This might be accomplished by interpreting this struct as a string and using that as a key.
  */
 typedef struct __orxTEXT_MARKER_DATA_t
 {
@@ -1701,8 +1701,9 @@ orxSTATUS orxFASTCALL orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont)
   return eResult;
 }
 
-/** Get handle to iterate markers starting with the first
- *  Returns orxHANDLE_UNDEFINED if no markers exist.
+/** Get handle of first marker for iteration
+ * @param[in] _pstText  Concerned text
+ * @return orxHANDLE / orxHANDLE_UNDEFINED
  */
 orxHANDLE orxFASTCALL orxText_FirstMarker(const orxTEXT *_pstText)
 {
@@ -1724,8 +1725,9 @@ orxHANDLE orxFASTCALL orxText_FirstMarker(const orxTEXT *_pstText)
   return hResult;
 }
 
-/** Get next handle to iterate markers
- *  Returns orxHANDLE_UNDEFINED if provided iterator is invalid, or when no markers remain
+/** Get next marker handle
+ * @param[in] _hIterator  Iterator from previous search
+ * @return Iterator for next element if an element has been found, orxHANDLE_UNDEFINED otherwise
  */
 orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
 {
@@ -1743,6 +1745,10 @@ orxHANDLE orxFASTCALL orxText_NextMarker(orxHANDLE _hIterator)
   return hResult;
 }
 
+/** Gets marker index (position) in the string it's a part of
+ * @param[in] _hIterator  Marker handle
+ * @return orxU32 index / orxU32_UNDEFINED for invalid marker handle
+ */
 orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
@@ -1759,6 +1765,10 @@ orxU32 orxFASTCALL orxText_GetMarkerIndex(orxHANDLE _hIterator)
   return u32Result;
 }
 
+/** Get marker type
+ * @param[in]   _hIterator    Marker handle
+ * @return      Marker type
+ */
 orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator)
 {
   orxTEXT_MARKER_CELL *pstCell;
@@ -1782,6 +1792,11 @@ orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator)
   return eResult;
 }
 
+/** Get marker font
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstFont     Marker font pointer / orxNULL
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 orxSTATUS orxFASTCALL orxText_GetMarkerFont(orxHANDLE _hIterator, orxFONT const **_ppstFont)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;
@@ -1803,6 +1818,11 @@ orxSTATUS orxFASTCALL orxText_GetMarkerFont(orxHANDLE _hIterator, orxFONT const 
   return eResult;
 }
 
+/** Get marker color
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _pstColor     Marker color / White
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 orxSTATUS orxFASTCALL orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;
@@ -1824,6 +1844,11 @@ orxSTATUS orxFASTCALL orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pst
   return eResult;
 }
 
+/** Get marker scale
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _pvScale      Marker scale / orxVECTOR_1
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pvScale)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;
@@ -1845,6 +1870,11 @@ orxSTATUS orxFASTCALL orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_p
   return eResult;
 }
 
+/** Get marker line height
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstScale    Marker line height / orxFLOAT_0
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 orxSTATUS orxFASTCALL orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;
@@ -1866,6 +1896,11 @@ orxSTATUS orxFASTCALL orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT
   return eResult;
 }
 
+/** Get marker revert type
+ * @param[in]   _hIterator    Marker handle
+ * @param[out]  _ppstScale    Marker revert type / orxTEXT_MARKER_TYPE_NONE
+ * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
+ */
 orxSTATUS orxFASTCALL orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType)
 {
   orxTEXT_MARKER_CELL *pstCell = orxNULL;

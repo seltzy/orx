@@ -47,6 +47,7 @@
 
 #include "display/orxFont.h"
 
+/** Text marker types */
 typedef enum __orxTEXT_MARKER_TYPE_t
 {
   orxTEXT_MARKER_TYPE_POP = 0,
@@ -136,59 +137,59 @@ extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetString(orxTEXT *_pstText, c
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont);
 
-/** Gets first marker
- * @param[in]   _pstText    Concerned text
- * @return      Marker handle / orxHANDLE_UNDEFINED
+/** Get handle of first marker for iteration
+ * @param[in] _pstText  Concerned text
+ * @return orxHANDLE / orxHANDLE_UNDEFINED
  */
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_FirstMarker(const orxTEXT *_pstText);
 
-/** Gets next marker
- * @param[in]   _hIterator    Current marker
- * @return      Next marker handle / orxHANDLE_UNDEFINED
+/** Get next marker handle
+ * @param[in] _hIterator  Iterator from previous search
+ * @return Iterator for next element if an element has been found, orxHANDLE_UNDEFINED otherwise
  */
 extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_NextMarker(orxHANDLE _hIterator);
 
-/** Gets marker index
- * @param[in]   _hIterator    Marker handle
- * @return      Marker index / orxU32_UNDEFINED
+/** Gets marker index (position) in the string it's a part of
+ * @param[in] _hIterator  Marker handle
+ * @return orxU32 index / orxU32_UNDEFINED for invalid marker handle
  */
 extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerIndex(orxHANDLE _hIterator);
 
-/** Gets marker type
+/** Get marker type
  * @param[in]   _hIterator    Marker handle
  * @return      Marker type
  */
 extern orxDLLAPI orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator);
 
-/** Gets marker font
+/** Get marker font
  * @param[in]   _hIterator    Marker handle
  * @param[out]  _ppstFont     Marker font pointer / orxNULL
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerFont(orxHANDLE _hIterator,  orxFONT const **_ppstFont);
 
-/** Gets marker color
+/** Get marker color
  * @param[in]   _hIterator    Marker handle
  * @param[out]  _pstColor     Marker color / White
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor);
 
-/** Gets marker scale
+/** Get marker scale
  * @param[in]   _hIterator    Marker handle
  * @param[out]  _pvScale      Marker scale / orxVECTOR_1
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pvScale);
 
-/** Gets marker line height
+/** Get marker line height
  * @param[in]   _hIterator    Marker handle
  * @param[out]  _ppstScale    Marker line height / orxFLOAT_0
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight);
 
-/** Gets marker revert type
+/** Get marker revert type
  * @param[in]   _hIterator    Marker handle
  * @param[out]  _ppstScale    Marker revert type / orxTEXT_MARKER_TYPE_NONE
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
