@@ -217,7 +217,6 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
 }
 
 /** Sanity tests marker traversal, giving back the failed marker handle for debugging
- *  If this method fails, check the bad marker and its adjacent ones for discrepancies
  * @param[in]   _pstText      Concerned text
  * @param[out]  _phBadMarker  Failed marker
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
@@ -315,10 +314,9 @@ static orxSTATUS orxFASTCALL orxText_ValidateMarkers(const orxTEXT *_pstText, or
   return eResult;
 }
 
-/** Checks if the remainder of the marker string starts with the specified type name.
- *  Returns whether it matched, and sets the next token in marker string to continue parsing from.
+/** Checks type name against current spot in marker string, storing remainder of string after parsing
  * @param[in]   _zCheckTypeName Test marker type name
- * @param[in]   _zMarkerText    Remaining marker text to start from
+ * @param[in]   _zMarkerText    Pointer to string where marker type starts
  * @param[out]  _pzRemainder    Where to continue parsing from
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
@@ -340,16 +338,11 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
   return eResult;
 }
 
-/** Checks the type and returns a pointer to the appropriate fallback data pointer. Returns orxNULL for invalid marker types.
- *  This is used to manage marker processing state when pushing/popping marker stack entries.
- *  TODO: This logic appears often in orxText_ProcessMarkedString, but this feels messy. See if there's a nicer way to compress this.
- *  When a stack entry is pushed, its data becomes the fallback data for the next pushed marker of its type.
- *  When a stack entry is popped, its fallback data is added as a new marker (which makes its data the new current fallback of that type).
- * @param[in]  _eType      Concerned text
- * @param[in]  _ppstColor  Pointer to Color fallback data pointer
- * @param[in]  _ppstFont   Pointer to Font fallback data pointer
- * @param[in]  _ppstScale  Pointer to Scale fallback data pointer
- * @return     _ppstColor / _ppstFont / _ppstScale / orxNULL
+/** Checks the type and returns a pointer to the appropriate fallback data pointer
+ *  This is used to manage marker processing state when pushing/popping marker stack entries
+ * @param[in]  _eType         Concerned text
+ * @param[in]  _pstFallbacks  Pointer to fallback structure
+ * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL
  */
 static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetMarkerFallbackPointer(orxTEXT_MARKER_TYPE _eType, orxTEXT_MARKER_FALLBACKS *_pstFallbacks)
 {
@@ -456,7 +449,9 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
 
 /** Pop a marker stack entry from the stack, adding a new marker to the marker list
  *  Popping a marker represents adding a new marker of the same type, but with the data of what came before it
- *  If the marker stack entry had no fallback data (i.e. is the first of its type), a revert marker with that type is placed instead
+ *  When a stack entry is pushed, its data becomes the fallback data for the next pushed marker of its type
+ *  When a stack entry is popped, its fallback data is added as a new marker (which makes its data the new current fallback of that type)
+ *  If the marker stack entry had no fallback data (i.e. is the first of its type), a revert marker with that type is allocated/placed instead
  *  @param[in]      _pstText           Concerned text
  *  @param[in]      _u32Index          Index to use for a fallback marker cell
  *  @param[in,out]  _ppstFallbackData  Data to use for a fallback marker cell, updated to hold data of the newly added marker
@@ -501,7 +496,7 @@ static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, c
   *_ppstFallbackData = pstFallbackData;
 }
 
-/** Parses marker data value string into marker data. Returns marker data if both the type and value are valid.
+/** Parses marker value string
  * @param[in]      _pstText             Concerned text
  * @param[in]      _eType               Expected marker data type
  * @param[in]      _zString             Whole unparsed string
@@ -630,7 +625,7 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *
   return pstResult;
 }
 
-/** Parses marker value, returning the marker type
+/** Parses marker type
  * @param[in]      _zString             Whole unparsed string
  * @param[in]      _u32Offset           Offset in _zString to the start of the marker type
  * @param[out]     _pzRemainder         Where to store pointer to remainder of string
