@@ -640,18 +640,18 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     case orxTEXT_MARKER_TYPE_COLOR:
     case orxTEXT_MARKER_TYPE_FONT:
     case orxTEXT_MARKER_TYPE_SCALE:
-      if (**_pzNextToken != orxTEXT_KC_MARKER_SYNTAX_OPEN)
+      if (**_pzNextToken == orxTEXT_KC_MARKER_SYNTAX_OPEN)
       {
-        eResult = orxTEXT_MARKER_TYPE_NONE;
+        break;
       }
-      break;
+      /* Fall through */
 
     /* Stack modifiers don't have any special chars after them */
     case orxTEXT_MARKER_TYPE_POP:
     case orxTEXT_MARKER_TYPE_CLEAR:
       break;
 
-    /* Anything else is considered impossible */
+    /* Anything else is considered invalid */
     default:
       eResult = orxTEXT_MARKER_TYPE_NONE;
       /* Skip to next whitespace character */
