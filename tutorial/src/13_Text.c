@@ -147,14 +147,28 @@ static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHAR
     }
   }
 }
+void ReloadTexts() {
+  /* Gets first text */
+  orxTEXT *pstText = orxTEXT(orxStructure_GetFirst(orxSTRUCTURE_ID_TEXT));
+
+  /* Not out of text? */
+  while(pstText != orxNULL)
+  {
+    /* Update string */
+    orxConfig_PushSection(orxText_GetName(pstText));
+    orxText_SetString(pstText, orxConfig_GetString("String"));
+    orxConfig_PopSection();
+    TestMarkerTraversal(pstText, orxNULL, orxNULL);
+
+    /* Gets first text */
+    pstText = orxTEXT(orxStructure_GetNext(pstText));
+  }
+}
 
 orxSTATUS orxFASTCALL ConfigEventHandler(const orxEVENT *_pstEvent) {
   orxSTATUS eResult = orxSTATUS_SUCCESS;
   if (_pstEvent->eID == orxRESOURCE_EVENT_UPDATE) {
-    orxConfig_PushSection(orxText_GetName(pstTestText));
-    orxText_SetString(pstTestText, orxConfig_GetString("String"));
-    orxConfig_PopSection();
-    TestMarkerTraversal(pstTestText, orxNULL, orxNULL);
+    ReloadTexts();
   }
   return eResult;
 }
@@ -179,7 +193,7 @@ orxSTATUS orxFASTCALL Init()
   orxGRAPHIC *pstGraphic = orxGRAPHIC(orxOBJECT_GET_STRUCTURE( pstMyTextObject, GRAPHIC) ) ;
 	orxSTRUCTURE *pstStructure = orxGraphic_GetData( pstGraphic );
   pstTestText = orxTEXT(pstStructure);
-  TestMarkerTraversal(pstTestText, orxNULL, orxNULL);
+  ReloadTexts();
   /* Done! */
   return orxSTATUS_SUCCESS;
 }
