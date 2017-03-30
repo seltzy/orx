@@ -456,7 +456,7 @@ static void orxFASTCALL orxText_ClearMarkers(orxTEXT *_pstText, orxU32 _u32Index
   while (orxLinkList_GetCounter(_pstStack) > 0)
   {
     /* Inspect top of stack for what type needs to be reverted */
-    orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(&stDryRunStack);
+    orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(_pstStack);
     /* Pop the stack */
     orxTEXT_MARKER_STACK_ENTRY *pstPoppedEntry = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(_pstStack);
     orxASSERT(pstPoppedEntry != orxNULL);
@@ -476,11 +476,11 @@ static void orxFASTCALL orxText_ClearMarkers(orxTEXT *_pstText, orxU32 _u32Index
       pstNewData = pstData;
     }
     /* Delete the popped entry */
-    orxBank_Delete(pstPoppedEntry);
+    orxBank_Free(_pstBank, pstPoppedEntry);
     if (pstNewData != orxNULL)
     {
       /* Get pointer to the revert data of this type in the temp fallbacks structure */
-      orxTEXT_MARKER_DATA **ppstStoreFallback = orxText_GetMarkerFallbackPointer(pstNewData->eRevertType, &stFallbacksReverted);
+      const orxTEXT_MARKER_DATA **ppstStoreFallback = orxText_GetMarkerFallbackPointer(pstNewData->eRevertType, &stFallbacksReverted);
       /* Valid place to store the fallback? */
       if (ppstStoreFallback != orxNULL)
       {
@@ -506,7 +506,7 @@ static void orxFASTCALL orxText_ClearMarkers(orxTEXT *_pstText, orxU32 _u32Index
  * @param[in]      _pstStack          Stack to pop from
  * @param[in]      _pstBank           Bank used by the stack for deleting popped stack entries
  */
-static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, orxBOOL _bClear, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
+static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, orxBOOL _bClear, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
 {
   orxASSERT(_pstText != orxNULL);
   orxASSERT(_u32Index != orxU32_UNDEFINED);
@@ -516,7 +516,7 @@ static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, o
   orxASSERT(orxLinkList_GetCounter(_pstStack) > 0);
 
   /* Inspect top of stack for what type needs to be rolled back */
-  orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(&stDryRunStack);
+  orxTEXT_MARKER_STACK_ENTRY *pstTop = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(_pstStack);
   /* Pop the stack */
   orxTEXT_MARKER_STACK_ENTRY *pstPoppedEntry = (orxTEXT_MARKER_STACK_ENTRY *) orxLinkList_GetLast(_pstStack);
   orxASSERT(pstPoppedEntry != orxNULL);
@@ -543,7 +543,7 @@ static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, o
   }
 
   /* Delete the popped entry */
-  orxBank_Delete(pstPoppedEntry);
+  orxBank_Free(_pstBank, pstPoppedEntry);
   /* Add a new marker using fallback data */
   orxText_AddMarkerCell(_pstText, _u32Index, pstNewData, orxFALSE);
 
@@ -863,7 +863,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           if (orxLinkList_GetCounter(&stDryRunStack) > 0)
           {
             /* Pop the stack, updating what pstFallbackData points to */
-            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxTRUE, pstFallbacks, &stDryRunStack, pstDryRunBank);
+            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxTRUE, &stFallbacks, &stDryRunStack, pstDryRunBank);
           }
 
           /* Continue parsing */
@@ -874,7 +874,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           while (orxLinkList_GetCounter(&stDryRunStack) > 0)
           {
             /* Pop the stack, updating what pstFallbackData points to */
-            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxFALSE, pstFallbacks, &stDryRunStack, pstDryRunBank);
+            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxFALSE, &stFallbacks, &stDryRunStack, pstDryRunBank);
           }
 
           /* Clear storage */
