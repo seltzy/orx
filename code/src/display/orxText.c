@@ -447,7 +447,7 @@ static orxTEXT_MARKER_CELL *orxFASTCALL orxText_AddMarkerCell(orxTEXT *_pstText,
   return pstResult;
 }
 
-static void orxFASTCALL orxText_ClearMarkers(orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
+static void orxFASTCALL orxText_ParserClearMarkers(orxTEXT *_pstText, orxU32 _u32Index, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
 {
   /* When clearing, we only want to revert to each type once, and only if necessary. */
   /* Create a temporary fallbacks structure to keep track of what has already been reverted */
@@ -506,7 +506,7 @@ static void orxFASTCALL orxText_ClearMarkers(orxTEXT *_pstText, orxU32 _u32Index
  * @param[in]      _pstStack          Stack to pop from
  * @param[in]      _pstBank           Bank used by the stack for deleting popped stack entries
  */
-static void orxFASTCALL orxText_PopMarker(orxTEXT *_pstText, orxU32 _u32Index, orxBOOL _bClear, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
+static void orxFASTCALL orxText_ParserPopMarker(orxTEXT *_pstText, orxU32 _u32Index, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstBank)
 {
   orxASSERT(_pstText != orxNULL);
   orxASSERT(_u32Index != orxU32_UNDEFINED);
@@ -863,7 +863,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           if (orxLinkList_GetCounter(&stDryRunStack) > 0)
           {
             /* Pop the stack, updating what pstFallbackData points to */
-            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxTRUE, &stFallbacks, &stDryRunStack, pstDryRunBank);
+            orxText_ParserPopMarker(_pstText, u32CleanedSizeUsed, &stFallbacks, &stDryRunStack, pstDryRunBank);
           }
 
           /* Continue parsing */
@@ -871,11 +871,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         else if (eType == orxTEXT_MARKER_TYPE_CLEAR)
         {
           /* Clear out the stack */
-          while (orxLinkList_GetCounter(&stDryRunStack) > 0)
-          {
-            /* Pop the stack, updating what pstFallbackData points to */
-            orxText_PopMarker(_pstText, u32CleanedSizeUsed, orxFALSE, &stFallbacks, &stDryRunStack, pstDryRunBank);
-          }
+          orxText_ParserClearMarkers(_pstText, u32CleanedSizeUsed, &stFallbacks, &stDryRunStack, pstDryRunBank);
 
           /* Clear storage */
           orxLinkList_Clean(&stDryRunStack);
