@@ -51,102 +51,6 @@
 
 orxTEXT *pstTestText = orxNULL;
 
-static void TestMarkerTraversal(orxTEXT *_pstText, orxBITMAP *pstBitmap, orxCHARACTER_MAP *pstMap)
-{
-  const orxSTRING zString = orxText_GetString(_pstText);
-  orxHANDLE hMarker = orxHANDLE_UNDEFINED;
-  orxHANDLE hIterator = orxText_FirstMarker(_pstText);
-  orxLOG("Testing markers for \"%s\"", zString);
-  for (orxU32 u32Index = 0; u32Index < orxString_GetLength(zString); u32Index++)
-  {
-    /* Process markers for this index */
-    for (;
-         (hIterator != orxNULL) && (hIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(hIterator) == u32Index) ;
-         hIterator = orxText_NextMarker(hIterator))
-    {
-      orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(hIterator);
-      /* Update stack */
-      switch(eType)
-      {
-      case orxTEXT_MARKER_TYPE_NONE:
-      {
-        orxLOG("No marker @%u?", u32Index);
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_COLOR:
-      {
-        orxRGBA stColor = {0};
-        if (orxText_GetMarkerColor(hIterator, &stColor) == orxSTATUS_SUCCESS)
-        {
-          orxLOG("Hit %s Marker @%u (%u, %u, %u, %u)", "color", u32Index, stColor.u8R, stColor.u8G, stColor.u8B, stColor.u8A);
-        }
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_FONT:
-      {
-        const orxFONT *pstFont;
-        if (orxText_GetMarkerFont(hIterator, &pstFont) == orxSTATUS_SUCCESS)
-        {
-          orxLOG("Hit %s Marker @%u %s", "font", u32Index, orxFont_GetName(pstFont));
-        }
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_SCALE:
-      {
-        orxVECTOR vScale = {0};
-        if (orxText_GetMarkerScale(hIterator, &vScale) == orxSTATUS_SUCCESS)
-        {
-          orxLOG("Hit %s Marker @%u (%f, %f, %f)", "scale", u32Index, vScale.fX, vScale.fY, vScale.fZ);
-        }
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-      {
-        orxFLOAT fHeight;
-        if (orxText_GetMarkerLineHeight(hIterator, &fHeight) == orxSTATUS_SUCCESS)
-        {
-          orxLOG("Hit %s Marker @%u %f", "line height", u32Index, fHeight);
-        }
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_REVERT:
-      {
-        orxSTRING zRevertType = "null";
-        orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
-        if (orxText_GetMarkerRevertType(hIterator, &eRevertType))
-        {
-          switch(eRevertType)
-          {
-          case orxTEXT_MARKER_TYPE_COLOR:
-          {
-            zRevertType = "color";
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_FONT:
-          {
-            zRevertType = "font";
-            break;
-          }
-          case orxTEXT_MARKER_TYPE_SCALE:
-          {
-            zRevertType = "scale";
-            break;
-          }
-          }
-        }
-        orxLOG("Hit %s Marker @%u %s", "revert", u32Index, zRevertType);
-        break;
-      }
-      /* The following should be impossible */
-      case orxTEXT_MARKER_TYPE_POP:
-      case orxTEXT_MARKER_TYPE_CLEAR:
-      default:
-        orxLOG("Unknown marker @%u?", u32Index);
-      }
-      /* If stack changes produced a fallback, look at what we're falling back to */
-    }
-  }
-}
 void ReloadTexts() {
   /* Gets first text */
   orxTEXT *pstText = orxTEXT(orxStructure_GetFirst(orxSTRUCTURE_ID_TEXT));
@@ -158,7 +62,6 @@ void ReloadTexts() {
     orxConfig_PushSection(orxText_GetName(pstText));
     orxText_SetString(pstText, orxConfig_GetString("String"));
     orxConfig_PopSection();
-    TestMarkerTraversal(pstText, orxNULL, orxNULL);
 
     /* Gets first text */
     pstText = orxTEXT(orxStructure_GetNext(pstText));

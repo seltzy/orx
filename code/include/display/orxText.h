@@ -57,11 +57,32 @@ typedef enum __orxTEXT_MARKER_TYPE_t
   orxTEXT_MARKER_TYPE_SCALE,
   orxTEXT_MARKER_TYPE_REVERT,
   orxTEXT_MARKER_TYPE_LINE_HEIGHT,
+  orxTEXT_MARKER_TYPE_NUMBER,
   orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
 } orxTEXT_MARKER_TYPE;
 
+/** Text marker data structure */
+typedef struct __orxTEXT_MARKER_DATA_t {
+  orxTEXT_MARKER_TYPE    eType;
+  union
+  {
+    const orxFONT       *pstFont;
+    orxRGBA              stRGBA;
+    orxVECTOR            vScale;
+    orxFLOAT             fLineHeight;
+    orxTEXT_MARKER_TYPE  eRevertType;
+  };
+} orxTEXT_MARKER_DATA;
+
+/** Text marker structure */
+typedef struct __orxTEXT_MARKER_t
+{
+  orxU32                 u32Index;
+  orxTEXT_MARKER_DATA    stData;
+} orxTEXT_MARKER;
+
 /** Internal text structure */
-typedef struct __orxTEXT_t                   orxTEXT;
+typedef struct __orxTEXT_t                orxTEXT;
 
 /** Setups the text module
  */
@@ -122,6 +143,18 @@ extern orxDLLAPI const orxSTRING orxFASTCALL orxText_GetString(const orxTEXT *_p
  */
 extern orxDLLAPI orxFONT *orxFASTCALL     orxText_GetFont(const orxTEXT *_pstText);
 
+/** Gets number of markers
+ * @param[in]   _pstText      Concerned text
+ * @return      Text marker counter
+ */
+extern orxDLLAPI orxU32 orxFASTCALL orxText_GetMarkerCounter(const orxTEXT *_pstText);
+
+/** Gets marker array
+ * @param[in] _pstText  Concerned text
+ * @return Pointer to orxTEXT_MARKER / orxNULL if no markers
+ */
+extern orxDLLAPI const orxTEXT_MARKER *orxFASTCALL orxText_GetMarkerArray(const orxTEXT *_pstText);
+
 
 /** Sets text string
  * @param[in]   _pstText      Concerned text
@@ -136,65 +169,6 @@ extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetString(orxTEXT *_pstText, c
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
 extern orxDLLAPI orxSTATUS orxFASTCALL    orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont);
-
-/** Get handle of first marker for iteration
- * @param[in] _pstText  Concerned text
- * @return orxHANDLE / orxHANDLE_UNDEFINED
- */
-extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_FirstMarker(const orxTEXT *_pstText);
-
-/** Get next marker handle
- * @param[in] _hIterator  Iterator from previous search
- * @return Iterator for next element if an element has been found, orxHANDLE_UNDEFINED otherwise
- */
-extern orxDLLAPI orxHANDLE orxFASTCALL           orxText_NextMarker(orxHANDLE _hIterator);
-
-/** Gets marker index (position) in the string it's a part of
- * @param[in] _hIterator  Marker handle
- * @return orxU32 index / orxU32_UNDEFINED for invalid marker handle
- */
-extern orxDLLAPI orxU32 orxFASTCALL              orxText_GetMarkerIndex(orxHANDLE _hIterator);
-
-/** Get marker type
- * @param[in]   _hIterator    Marker handle
- * @return      Marker type
- */
-extern orxDLLAPI orxTEXT_MARKER_TYPE orxFASTCALL orxText_GetMarkerType(orxHANDLE _hIterator);
-
-/** Get marker font
- * @param[in]   _hIterator    Marker handle
- * @param[out]  _ppstFont     Marker font pointer / orxNULL
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerFont(orxHANDLE _hIterator,  orxFONT const **_ppstFont);
-
-/** Get marker color
- * @param[in]   _hIterator    Marker handle
- * @param[out]  _pstColor     Marker color / White
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerColor(orxHANDLE _hIterator, orxRGBA *_pstColor);
-
-/** Get marker scale
- * @param[in]   _hIterator    Marker handle
- * @param[out]  _pvScale      Marker scale / orxVECTOR_1
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerScale(orxHANDLE _hIterator, orxVECTOR *_pvScale);
-
-/** Get marker line height
- * @param[in]   _hIterator    Marker handle
- * @param[out]  _ppstScale    Marker line height / orxFLOAT_0
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerLineHeight(orxHANDLE _hIterator, orxFLOAT *_pfHeight);
-
-/** Get marker revert type
- * @param[in]   _hIterator    Marker handle
- * @param[out]  _ppstScale    Marker revert type / orxTEXT_MARKER_TYPE_NONE
- * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
- */
-extern orxDLLAPI orxSTATUS orxFASTCALL           orxText_GetMarkerRevertType(orxHANDLE _hIterator, orxTEXT_MARKER_TYPE *_peType);
 
 #endif /* _orxTEXT_H_ */
 

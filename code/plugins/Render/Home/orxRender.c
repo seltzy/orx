@@ -1549,7 +1549,7 @@ static orxSTATUS orxFASTCALL orxRender_Home_RenderObject(const orxOBJECT *_pstOb
         else
         {
           /* Transfomrs text */
-          eResult = orxDisplay_TransformText(orxText_GetString(pstText), orxText_FirstMarker(pstText), pstBitmap, orxFont_GetMap(pstFont), stPayload.stObject.pstTransform, _eSmoothing, _eBlendMode);
+          eResult = orxDisplay_TransformText(orxText_GetString(pstText), (orxHANDLE) orxText_GetMarkerArray(pstText), pstBitmap, orxFont_GetMap(pstFont), stPayload.stObject.pstTransform, _eSmoothing, _eBlendMode);
         }
       }
       else

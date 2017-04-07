@@ -1850,7 +1850,7 @@ orxBITMAP *orxFASTCALL orxDisplay_GLFW_GetScreenBitmap()
   return sstDisplay.pstScreen;
 }
 
-orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, orxHANDLE _hMarkerIterator, const orxBITMAP *_pstFont, const orxCHARACTER_MAP *_pstMap, const orxDISPLAY_TRANSFORM *_pstTransform, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode)
+orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, orxHANDLE _hMarkerArray, const orxBITMAP *_pstFont, const orxCHARACTER_MAP *_pstMap, const orxDISPLAY_TRANSFORM *_pstTransform, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode)
 {
   orxDISPLAY_MATRIX       mTransform;
   const orxCHAR          *pc;
@@ -1862,6 +1862,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   const orxCHARACTER_MAP *pstMarkerFontCharacterMap = _pstMap;
   orxRGBA                 stMarkerBitmapColor       = _pstFont->stColor;
   orxVECTOR               vMarkerGlyphScale         = orxVECTOR_1;
+  const orxTEXT_MARKER   *pstMarkerArray            = (const orxTEXT_MARKER *)_hMarkerArray;
   orxSTATUS               eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -1886,17 +1887,14 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
     /* Step through markers at this character index and update rendering data accordingly */
-    for ( ;
-          (_hMarkerIterator != orxNULL) && (_hMarkerIterator != orxHANDLE_UNDEFINED) && (orxText_GetMarkerIndex(_hMarkerIterator) == u32CharacterIndex) ;
-          _hMarkerIterator = orxText_NextMarker(_hMarkerIterator) )
+    for ( ; (pstMarkerArray != orxNULL) && (pstMarkerArray->u32Index == u32CharacterIndex) ; pstMarkerArray++ )
     {
-      orxTEXT_MARKER_TYPE eType = orxText_GetMarkerType(_hMarkerIterator);
+      orxTEXT_MARKER_TYPE eType = pstMarkerArray->stData.eType;
       switch (eType)
       {
       case orxTEXT_MARKER_TYPE_FONT:
       {
-        const orxFONT *pstFont = orxNULL;
-        orxASSERT(orxText_GetMarkerFont(_hMarkerIterator, &pstFont) == orxSTATUS_SUCCESS);
+        const orxFONT *pstFont = pstMarkerArray->stData.pstFont;
         pstMarkerFontBitmap = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
         pstMarkerFontCharacterMap = orxFont_GetMap(pstFont);
         fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
@@ -1906,23 +1904,22 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       }
       case orxTEXT_MARKER_TYPE_COLOR:
       {
-        orxASSERT(orxText_GetMarkerColor(_hMarkerIterator, &stMarkerBitmapColor) == orxSTATUS_SUCCESS);
+        stMarkerBitmapColor = pstMarkerArray->stData.stRGBA;
         break;
       }
       case orxTEXT_MARKER_TYPE_SCALE:
       {
-        orxASSERT(orxText_GetMarkerScale(_hMarkerIterator, &vMarkerGlyphScale) == orxSTATUS_SUCCESS);
+        vMarkerGlyphScale = pstMarkerArray->stData.vScale;
         break;
       }
       case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
       {
-        orxASSERT(orxText_GetMarkerLineHeight(_hMarkerIterator, &fLineHeight) == orxSTATUS_SUCCESS);
+        fLineHeight = pstMarkerArray->stData.fLineHeight;
         break;
       }
       case orxTEXT_MARKER_TYPE_REVERT:
       {
-        orxTEXT_MARKER_TYPE eRevertType = orxTEXT_MARKER_TYPE_NONE;
-        orxASSERT(orxText_GetMarkerRevertType(_hMarkerIterator, &eRevertType) == orxSTATUS_SUCCESS);
+        orxTEXT_MARKER_TYPE eRevertType = pstMarkerArray->stData.eRevertType;
         switch (eRevertType)
         {
         case orxTEXT_MARKER_TYPE_FONT:
