@@ -96,9 +96,9 @@
  */
 typedef struct __orxTEXT_MARKER_FALLBACKS_t
 {
-  const orxTEXT_MARKER_DATA *pstFontData;
-  const orxTEXT_MARKER_DATA *pstColorData;
-  const orxTEXT_MARKER_DATA *pstScaleData;
+  orxTEXT_MARKER_DATA *pstFontData;
+  orxTEXT_MARKER_DATA *pstColorData;
+  orxTEXT_MARKER_DATA *pstScaleData;
 } orxTEXT_MARKER_FALLBACKS;
 
 /** Marker node
@@ -214,49 +214,29 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
 
 static orxTEXT_MARKER *orxFASTCALL orxText_AddMarker(orxBANK *_pstMarkerBank, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData)
 {
-        orxTEXT_MARKER *pstResult;
+  orxTEXT_MARKER *pstResult;
 
-        /* Checks */
-        orxASSERT(_pstMarkerBank != orxNULL);
-        orxASSERT(_u32Index != orxU32_UNDEFINED);
-        orxASSERT(_pstData != orxNULL);
-        orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
-
-        /* Update result */
-        pstResult = (orxTEXT_MARKER *) orxBank_Allocate(_pstMarkerBank);
-        pstResult->u32Index = _u32Index;
-        orxMemory_Copy(&(pstResult->stData), _pstData, sizeof(orxTEXT_MARKER_DATA));
-
-        /* Done! */
-        return pstResult;
-}
-
-/** Checks the type and returns a pointer to the appropriate fallback data pointer
- *  This is used to manage marker processing state when pushing/popping marker stack entries
- * @param[in]  _eType         Concerned text
- * @param[in]  _pstFallbacks  Pointer to fallback structure (used for parser state)
- * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL
- */
-static const orxTEXT_MARKER_DATA **orxFASTCALL orxText_GetMarkerFallbackPointer(orxTEXT_MARKER_TYPE _eType, orxTEXT_MARKER_FALLBACKS *_pstFallbacks)
-{
-  orxASSERT(_pstFallbacks != orxNULL);
-  /* Get a pointer to the appropriate fallback data */
-  const orxTEXT_MARKER_DATA **ppstResult = orxNULL;
-  switch(_eType)
+  if (_pstData == orxNULL)
   {
-  case orxTEXT_MARKER_TYPE_COLOR:
-    ppstResult = &_pstFallbacks->pstColorData;
-    break;
-  case orxTEXT_MARKER_TYPE_FONT:
-    ppstResult = &_pstFallbacks->pstFontData;
-    break;
-  case orxTEXT_MARKER_TYPE_SCALE:
-    ppstResult = &_pstFallbacks->pstScaleData;
-    break;
-  default:
-    ppstResult = orxNULL;
+    pstResult = orxNULL;
   }
-  return ppstResult;
+  else
+  {
+    /* Checks */
+    orxASSERT(_pstMarkerBank != orxNULL);
+    orxASSERT(_u32Index != orxU32_UNDEFINED);
+    orxASSERT(_pstData != orxNULL);
+    orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
+
+    /* Update result */
+    pstResult = (orxTEXT_MARKER *) orxBank_Allocate(_pstMarkerBank);
+    orxASSERT(pstResult != orxNULL);
+    pstResult->u32Index = _u32Index;
+    orxMemory_Copy(&(pstResult->stData), _pstData, sizeof(orxTEXT_MARKER_DATA));
+  }
+
+  /* Done! */
+  return pstResult;
 }
 
 /** Create and push a marker stack entry with the specified data / fallback data.
@@ -276,6 +256,39 @@ static orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST 
   return pstResult;
 }
 
+/** Checks the type and returns a pointer to the appropriate fallback data pointer
+ *  This is used to manage marker processing state when pushing/popping marker stack entries
+ * @param[in]  _eType         Concerned text
+ * @param[in]  _pstFallbacks  Pointer to fallback structure (used for parser state)
+ * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL
+ */
+static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(orxTEXT_MARKER_TYPE _eType, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, const orxTEXT_MARKER_DATA *_pstData)
+{
+  orxASSERT(_pstFallbacks != orxNULL);
+  orxASSERT(_pstData != orxNULL);
+  orxTEXT_MARKER_DATA *pstResult;
+  /* Get a pointer to the appropriate fallback data */
+  switch(_eType)
+  {
+  case orxTEXT_MARKER_TYPE_COLOR:
+    pstResult = _pstFallbacks->pstColorData;
+    break;
+  case orxTEXT_MARKER_TYPE_FONT:
+    pstResult = _pstFallbacks->pstFontData;
+    break;
+  case orxTEXT_MARKER_TYPE_SCALE:
+    pstResult = _pstFallbacks->pstScaleData;
+    break;
+  default:
+    pstResult = orxNULL;
+  }
+  if (pstResult != orxNULL)
+  {
+    *pstResult = *_pstData;
+  }
+  return pstResult;
+}
+
 static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU32 _u32Index, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstStackBank)
 {
   /* When clearing, we only want to revert to each type once, and only if necessary. */
@@ -284,45 +297,35 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
   /* Pop stack until it's empty */
   while (orxLinkList_GetCounter(_pstStack) > 0)
   {
-    /* Inspect top of stack for what type needs to be reverted */
-    orxTEXT_MARKER_NODE *pstTop = (orxTEXT_MARKER_NODE *) orxLinkList_GetLast(_pstStack);
     /* Pop the stack */
     orxTEXT_MARKER_NODE *pstPoppedEntry = (orxTEXT_MARKER_NODE *) orxLinkList_GetLast(_pstStack);
     orxASSERT(pstPoppedEntry != orxNULL);
     orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
-    const orxTEXT_MARKER_DATA *pstNewData = orxNULL;
+    orxTEXT_MARKER_DATA stData;
     /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
     if (pstPoppedEntry->pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
     {
       /* The popped entry was already a revert? Someone isn't keeping track of how much they clear/pop the stack. */
-      pstNewData = pstPoppedEntry->pstData;
+      stData = *(pstPoppedEntry->pstData);
+    }
+    else
+    {
+      stData.eType = orxTEXT_MARKER_TYPE_REVERT;
+      stData.eRevertType = pstPoppedEntry->pstData->eType;
     }
     /* Delete the popped entry */
     orxBank_Free(_pstStackBank, pstPoppedEntry);
-    /* Get pointer to the revert data of this type in the temp fallbacks structure */
-    const orxTEXT_MARKER_DATA **ppstStoreFallback = orxText_GetMarkerFallbackPointer(pstNewData->eRevertType, &stFallbacksReverted);
-    /* Valid place to store the fallback? */
-    if (ppstStoreFallback != orxNULL)
+
+    orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stData.eRevertType, &stFallbacksReverted, &stData);
+    if (pstFallbackData != orxNULL)
     {
-      /* Nothing there? Hasn't been reverted yet, so add a revert marker for it and flag it as reverted. */
-      if (*ppstStoreFallback == orxNULL)
-      {
-        if (pstNewData != orxNULL)
-        {
-          orxText_AddMarker(_pstMarkerBank, _u32Index, pstNewData);
-          *ppstStoreFallback = pstNewData;
-        }
-        else
-        {
-          orxTEXT_MARKER_DATA stData;
-          stData.eType = orxTEXT_MARKER_TYPE_REVERT;
-          stData.eRevertType = pstPoppedEntry->pstData->eType;
-          orxText_AddMarker(_pstMarkerBank, _u32Index, &stData);
-          *ppstStoreFallback = &stData;
-        }
-      }
+      pstFallbackData = orxText_UpdateMarkerFallback(stData.eRevertType, _pstFallbacks, &stData);
+      orxASSERT(pstFallbackData != orxNULL);
     }
   }
+  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstColorData);
+  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstFontData);
+  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstScaleData);
 }
 
 /** Parses marker value string
@@ -668,18 +671,14 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
             /* Delete the popped entry */
             orxBank_Free(pstDryRunStackBank, pstPoppedEntry);
-            orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
 
             /* Update the processors fallback data to be the newly added marker's data */
             /* Get a pointer to the appropriate fallback data */
-            const orxTEXT_MARKER_DATA **ppstFallbackData = orxText_GetMarkerFallbackPointer(pstMarker->stData.eRevertType, &stFallbacks);
-            if (ppstFallbackData != orxNULL)
+            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stFallbackData.eRevertType, &stFallbacks, &stFallbackData);
+            if (pstFallbackData != orxNULL)
             {
-              /* This is either the popped marker's fallback data, or a placeholder (revert) for the user to interpret */
-              *ppstFallbackData = &(pstMarker->stData);
+              orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
             }
-
-            /* orxText_ParserPopMarker(_pstText, , &stFallbacks, &stDryRunStack, pstDryRunBank); */
           }
 
           /* Continue parsing */
@@ -712,18 +711,14 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           /* Add/Push marker */
           if (eResult == orxSTATUS_SUCCESS)
           {
-            /* The type we plan to store will determine which fallback pointer needs to be updated */
-            const orxTEXT_MARKER_DATA **ppstFallbackData = orxNULL;
-            ppstFallbackData = orxText_GetMarkerFallbackPointer(eType, &stFallbacks);
-            /* Fallback data cannot be null if the data was of a valid type */
-            orxASSERT(ppstFallbackData);
-
-            /* Add a marker cell (implicitly represents final traversal order )*/
-            orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
-            /* Push data to stack with fallback data */
-            orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &(pstMarker->stData), *ppstFallbackData);
-            /* Update the fallback data pointer */
-            *ppstFallbackData = &(pstMarker->stData);
+            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(eType, &stFallbacks, &stData);
+            if (pstFallbackData != orxNULL)
+            {
+              /* Add a marker cell (implicitly represents final traversal order )*/
+              orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+              /* Push data to stack with fallback data */
+              orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &(pstMarker->stData), pstFallbackData);
+            }
           }
           /* Continue parsing */
         }
