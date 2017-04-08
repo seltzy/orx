@@ -733,17 +733,22 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
   /* Move markers to array. */
   orxU32 u32MarkerCounter = orxBank_GetCounter(pstDryRunMarkerBank);
-  _pstText->pstMarkers = (orxTEXT_MARKER *) orxMemory_Reallocate((void *)_pstText->pstMarkers, sizeof(orxTEXT_MARKER) * u32MarkerCounter);
-  orxASSERT(_pstText->pstMarkers != orxNULL);
-  for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
+  if (u32MarkerCounter > 0)
   {
-    orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
-    orxASSERT(pstMarker != orxNULL);
-    const orxTEXT_MARKER *pstStoreMarkerAt = _pstText->pstMarkers + u32Index;
-    orxASSERT(pstStoreMarkerAt != orxNULL);
-    /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
-    orxMemory_Move((void *)pstStoreMarkerAt, pstMarker, sizeof(orxTEXT_MARKER));
+    _pstText->pstMarkers = (orxTEXT_MARKER *) orxMemory_Allocate(sizeof(orxTEXT_MARKER) * u32MarkerCounter, orxMEMORY_TYPE_MAIN);
+    orxASSERT(_pstText->pstMarkers != orxNULL);
+    for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
+    {
+      orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
+      orxASSERT(pstMarker != orxNULL);
+      const orxTEXT_MARKER *pstStoreMarkerAt = _pstText->pstMarkers + u32Index;
+      orxASSERT(pstStoreMarkerAt != orxNULL);
+      /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
+      pstMarker = (orxTEXT_MARKER *) orxMemory_Move((void *)pstStoreMarkerAt, pstMarker, sizeof(orxTEXT_MARKER));
+      orxASSERT(pstMarker != orxNULL);
+    }
   }
+  _pstText->u32MarkerCounter = u32MarkerCounter;
 
   /* Free the dry run banks */
   orxBank_Delete(pstDryRunMarkerBank);
@@ -1460,6 +1465,13 @@ orxSTATUS orxFASTCALL orxText_SetString(orxTEXT *_pstText, const orxSTRING _zStr
     _pstText->zString = orxNULL;
   }
 
+  /* Has markers? */
+  if (_pstText->pstMarkers != orxNULL)
+  {
+    /* Cleans it */
+    orxMemory_Free((void *)_pstText->pstMarkers);
+    _pstText->pstMarkers = orxNULL;
+  }
   /* Process markers out of the string */
   _zString = orxText_ProcessMarkedString(_pstText, _zString);
 
