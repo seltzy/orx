@@ -596,8 +596,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
                                        orxBANK_KU32_FLAG_NONE, orxMEMORY_TYPE_MAIN);
   orxASSERT(pstDryRunStackBank != orxNULL);
 
-  stDryRunStack = {0};
-  stFallbacks   = {orxNULL, orxNULL, orxNULL};
+  stDryRunStack = (orxLINKLIST){0};
+  stFallbacks   = (orxTEXT_MARKER_FALLBACKS){orxNULL, orxNULL, orxNULL};
 
   /* Parse the string using zMarkedString as a pointer to our current position in _zString */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
