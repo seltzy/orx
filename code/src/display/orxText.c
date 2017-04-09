@@ -498,51 +498,48 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     eResult = orxTEXT_MARKER_TYPE_NONE;
   }
 
-  /* if (eResult != orxTEXT_MARKER_TYPE_NONE) */
+  /* Ensure the next char is valid */
+  switch(eResult)
   {
-    /* Ensure the next char is valid */
-    switch(eResult)
-    {
     /* Stack modifiers don't have any special chars after them */
-    case orxTEXT_MARKER_TYPE_POP:
-    case orxTEXT_MARKER_TYPE_CLEAR:
-      break;
+  case orxTEXT_MARKER_TYPE_POP:
+  case orxTEXT_MARKER_TYPE_CLEAR:
+    break;
 
     /* Marker types with a value are expected to be followed by a value opener char */
-    case orxTEXT_MARKER_TYPE_COLOR:
-    case orxTEXT_MARKER_TYPE_FONT:
-    case orxTEXT_MARKER_TYPE_SCALE:
-      if (**_pzRemainder == orxTEXT_KC_MARKER_SYNTAX_OPEN)
-      {
-        break;
-      }
-      /* If invalid char was found after marker type, fall through */
+  case orxTEXT_MARKER_TYPE_COLOR:
+  case orxTEXT_MARKER_TYPE_FONT:
+  case orxTEXT_MARKER_TYPE_SCALE:
+    if (**_pzRemainder == orxTEXT_KC_MARKER_SYNTAX_OPEN)
+    {
+      break;
+    }
+    /* If invalid char was found after marker type, fall through */
 
     /* Anything else is considered invalid */
-    default:
-      eResult = orxTEXT_MARKER_TYPE_NONE;
-      /* Skip to next whitespace character */
-      const orxSTRING zNextWhiteSpace = zTypeStart;
-      while ((*zNextWhiteSpace != ' ') && (*zNextWhiteSpace != '\t') &&
-             (*zNextWhiteSpace != orxCHAR_CR) && (*zNextWhiteSpace != orxCHAR_LF) &&
-             (*zNextWhiteSpace != orxCHAR_NULL))
-      {
-        zNextWhiteSpace++;
-      }
-      orxU32 u32TypeStringSize = (orxU32)(zNextWhiteSpace - zTypeStart + 1);
-      /* Make a temporary string to hold the bad value */
-#ifdef __orxMSVC__
-      orxCHAR *zTypeString = (orxCHAR *)alloca(u32TypeStringSize * sizeof(orxCHAR));
-#else /* __orxMSVC__ */
-      orxCHAR zTypeString[u32TypeStringSize];
-#endif /* __orxMSVC__ */
-      orxString_NCopy(zTypeString, zTypeStart, u32TypeStringSize - 1);
-      zTypeString[u32TypeStringSize - 1] = orxCHAR_NULL;
-      /* Log warning */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeString, orxSTRING_EMPTY, _zString);
-      /* Advance next token to whitespace */
-      *_pzRemainder = zNextWhiteSpace;
+  default:
+    eResult = orxTEXT_MARKER_TYPE_NONE;
+    /* Skip to next whitespace character */
+    const orxSTRING zNextWhiteSpace = zTypeStart;
+    while ((*zNextWhiteSpace != ' ') && (*zNextWhiteSpace != '\t') &&
+           (*zNextWhiteSpace != orxCHAR_CR) && (*zNextWhiteSpace != orxCHAR_LF) &&
+           (*zNextWhiteSpace != orxCHAR_NULL))
+    {
+      zNextWhiteSpace++;
     }
+    orxU32 u32TypeStringSize = (orxU32)(zNextWhiteSpace - zTypeStart + 1);
+    /* Make a temporary string to hold the bad value */
+#ifdef __orxMSVC__
+    orxCHAR *zTypeString = (orxCHAR *)alloca(u32TypeStringSize * sizeof(orxCHAR));
+#else /* __orxMSVC__ */
+    orxCHAR zTypeString[u32TypeStringSize];
+#endif /* __orxMSVC__ */
+    orxString_NCopy(zTypeString, zTypeStart, u32TypeStringSize - 1);
+    zTypeString[u32TypeStringSize - 1] = orxCHAR_NULL;
+    /* Log warning */
+    orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeString, orxSTRING_EMPTY, _zString);
+    /* Advance next token to whitespace */
+    *_pzRemainder = zNextWhiteSpace;
   }
 
   /* Done */
