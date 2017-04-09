@@ -612,7 +612,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_Allocate(pstDryRunMarkerBank);
         pstMarker->u32Index = u32CleanedSizeUsed;
         pstMarker->stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
-        pstMarker->stData.fLineHeight = orxFont_GetCharacterHeight(stFallbacks.pstFontData->pstFont);
+        /* Line height marker value is determined by current font */
+        const orxFONT *pstFont = (stFallbacks.pstFontData != orxNULL) ? stFallbacks.pstFontData->pstFont : orxText_GetFont(_pstText);
+        pstMarker->stData.fLineHeight = orxFont_GetCharacterHeight(pstFont);
       }
 
       /* Non-marker text */
