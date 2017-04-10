@@ -747,12 +747,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     orxASSERT(_pstText->pstMarkers != orxNULL);
     for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
     {
-      orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
-      orxASSERT(pstMarker != orxNULL);
       const orxTEXT_MARKER *pstStoreMarkerAt = _pstText->pstMarkers + u32Index;
       orxASSERT(pstStoreMarkerAt != orxNULL);
+      orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
+      orxASSERT(pstMarker != orxNULL);
       /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
-      pstMarker = (orxTEXT_MARKER *) orxMemory_Move((void *)pstStoreMarkerAt, pstMarker, sizeof(orxTEXT_MARKER));
+      pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
       /* Checks */
       orxASSERT(pstMarker != orxNULL);
       orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
