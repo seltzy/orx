@@ -306,16 +306,19 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
     if (pstPoppedEntry->pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
     {
       /* The popped entry was already a revert? Someone isn't keeping track of how much they clear/pop the stack. */
+      /* Simply copy the revert data */
       stData = *(pstPoppedEntry->pstData);
     }
     else
     {
+      /* Create a new revert */
       stData.eType = orxTEXT_MARKER_TYPE_REVERT;
       stData.eRevertType = pstPoppedEntry->pstData->eType;
     }
     /* Delete the popped entry */
     orxBank_Free(_pstStackBank, pstPoppedEntry);
 
+    /* Update the fallback data to add as revert markers */
     orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stData.eRevertType, &stFallbacksReverted, &stData);
     if (pstFallbackData != orxNULL)
     {
@@ -519,6 +522,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     /* Anything else is considered invalid */
   default:
     eResult = orxTEXT_MARKER_TYPE_NONE;
+
     /* Skip to next whitespace character */
     const orxSTRING zNextWhiteSpace = zTypeStart;
     while ((*zNextWhiteSpace != ' ') && (*zNextWhiteSpace != '\t') &&
@@ -527,8 +531,8 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     {
       zNextWhiteSpace++;
     }
+    /* Make a temporary string to hold the bad value for logging */
     orxU32 u32TypeStringSize = (orxU32)(zNextWhiteSpace - zTypeStart + 1);
-    /* Make a temporary string to hold the bad value */
 #ifdef __orxMSVC__
     orxCHAR *zTypeString = (orxCHAR *)alloca(u32TypeStringSize * sizeof(orxCHAR));
 #else /* __orxMSVC__ */
@@ -538,6 +542,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     zTypeString[u32TypeStringSize - 1] = orxCHAR_NULL;
     /* Log warning */
     orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeString, orxSTRING_EMPTY, _zString);
+
     /* Advance next token to whitespace */
     *_pzRemainder = zNextWhiteSpace;
   }
@@ -577,7 +582,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   }
 
   /* Initialize string traversal/storage variables */
-
   zMarkedString      = _zString;
   u32CleanedSize     = orxString_GetLength(zMarkedString) + 1;
   u32CleanedSizeUsed = 0;
