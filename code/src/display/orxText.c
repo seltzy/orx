@@ -227,6 +227,7 @@ static orxTEXT_MARKER *orxFASTCALL orxText_AddMarker(orxBANK *_pstMarkerBank, or
     orxASSERT(_u32Index != orxU32_UNDEFINED);
     orxASSERT(_pstData != orxNULL);
     orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
+    orxASSERT(_pstData->eType < orxTEXT_MARKER_TYPE_NUMBER);
 
     /* Update result */
     pstResult = (orxTEXT_MARKER *) orxBank_Allocate(_pstMarkerBank);
@@ -247,6 +248,8 @@ static orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST 
   orxASSERT(_pstStackBank != orxNULL);
   orxASSERT(_pstStack != orxNULL);
   orxASSERT(_pstData != orxNULL);
+  orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
+  orxASSERT(_pstData->eType < orxTEXT_MARKER_TYPE_NUMBER);
   /* Allocate and initialize marker stack entry */
   orxTEXT_MARKER_NODE *pstResult = (orxTEXT_MARKER_NODE *) orxBank_Allocate(_pstStackBank);
   orxASSERT(pstResult != orxNULL);
@@ -315,6 +318,13 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
       stData.eType = orxTEXT_MARKER_TYPE_REVERT;
       stData.eRevertType = pstPoppedEntry->pstData->eType;
     }
+
+    /* Checks */
+    orxASSERT(stData.eType == orxTEXT_MARKER_TYPE_REVERT);
+    orxASSERT(stData.eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
+              stData.eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
+              stData.eRevertType == orxTEXT_MARKER_TYPE_SCALE);
+
     /* Delete the popped entry */
     orxBank_Free(_pstStackBank, pstPoppedEntry);
 
@@ -743,7 +753,33 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstStoreMarkerAt != orxNULL);
       /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
       pstMarker = (orxTEXT_MARKER *) orxMemory_Move((void *)pstStoreMarkerAt, pstMarker, sizeof(orxTEXT_MARKER));
+      /* Checks */
       orxASSERT(pstMarker != orxNULL);
+      orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
+      orxASSERT(pstMarker->stData.eType < orxTEXT_MARKER_TYPE_NUMBER);
+      switch (pstMarker->stData.eType)
+      {
+      case orxTEXT_MARKER_TYPE_FONT:
+        orxSTRUCTURE_ASSERT(pstMarker->stData.pstFont);
+        break;
+      case orxTEXT_MARKER_TYPE_COLOR:
+        break;
+      case orxTEXT_MARKER_TYPE_SCALE:
+        break;
+      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+        orxASSERT(pstMarker->stData.fLineHeight >= orxFLOAT_0);
+        break;
+      case orxTEXT_MARKER_TYPE_REVERT:
+      {
+        orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
+        orxASSERT(eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
+                  eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
+                  eRevertType == orxTEXT_MARKER_TYPE_SCALE);
+        break;
+      }
+      default:
+        orxASSERT(orxFALSE, "Invalid marker type");
+      }
     }
   }
   _pstText->u32MarkerCounter = u32MarkerCounter;
