@@ -96,9 +96,9 @@
  */
 typedef struct __orxTEXT_MARKER_FALLBACKS_t
 {
-  orxTEXT_MARKER_DATA *pstFontData;
-  orxTEXT_MARKER_DATA *pstColorData;
-  orxTEXT_MARKER_DATA *pstScaleData;
+  orxTEXT_MARKER_DATA stFontData;
+  orxTEXT_MARKER_DATA stColorData;
+  orxTEXT_MARKER_DATA stScaleData;
 } orxTEXT_MARKER_FALLBACKS;
 
 /** Marker node
@@ -274,29 +274,33 @@ static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(orxTEXT_MAR
   switch(_eType)
   {
   case orxTEXT_MARKER_TYPE_COLOR:
-    pstResult = _pstFallbacks->pstColorData;
+    _pstFallbacks->stColorData = *_pstData;
+    pstResult = &_pstFallbacks->stColorData;
     break;
   case orxTEXT_MARKER_TYPE_FONT:
-    pstResult = _pstFallbacks->pstFontData;
+    _pstFallbacks->stFontData = *_pstData;
+    pstResult = &_pstFallbacks->stFontData;
     break;
   case orxTEXT_MARKER_TYPE_SCALE:
-    pstResult = _pstFallbacks->pstScaleData;
+    _pstFallbacks->stScaleData = *_pstData;
+    pstResult = &_pstFallbacks->stScaleData;
     break;
   default:
     pstResult = orxNULL;
   }
-  if (pstResult != orxNULL)
-  {
-    *pstResult = *_pstData;
-  }
+  /* Done! */
   return pstResult;
 }
 
-static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU32 _u32Index, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstStackBank)
+static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU32 _u32Index, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstStackBank)
 {
   /* When clearing, we only want to revert to each type once, and only if necessary. */
   /* Create a temporary fallbacks structure to keep track of what has already been reverted */
-  orxTEXT_MARKER_FALLBACKS stFallbacksReverted = {orxNULL, orxNULL, orxNULL};
+  orxTEXT_MARKER_FALLBACKS stFallbacksReverted;
+  orxMemory_Set(&stFallbacksReverted, 0, sizeof(orxTEXT_MARKER_FALLBACKS));
+  stFallbacksReverted.stFontData.eType = orxTEXT_MARKER_TYPE_NONE;
+  stFallbacksReverted.stColorData.eType = orxTEXT_MARKER_TYPE_NONE;
+  stFallbacksReverted.stScaleData.eType = orxTEXT_MARKER_TYPE_NONE;
   /* Pop stack until it's empty */
   while (orxLinkList_GetCounter(_pstStack) > 0)
   {
@@ -336,9 +340,10 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
       orxASSERT(pstFallbackData != orxNULL);
     }
   }
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstColorData);
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstFontData);
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstScaleData);
+  /* Attempt to add the actual reverts at this position */
+  orxText_AddMarker(_pstMarkerBank, _u32Index, &stFallbacksReverted.stColorData);
+  orxText_AddMarker(_pstMarkerBank, _u32Index, &stFallbacksReverted.stFontData);
+  orxText_AddMarker(_pstMarkerBank, _u32Index, &stFallbacksReverted.stScaleData);
 }
 
 /** Parses marker value string
@@ -578,6 +583,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxLINKLIST   stDryRunStack;
   /* Used for keeping track of marker type fallbacks when manipulating the stack */
   orxTEXT_MARKER_FALLBACKS stFallbacks;
+  orxMemory_Set(&stFallbacks, 0, sizeof(orxTEXT_MARKER_FALLBACKS));
+  stFallbacks.stFontData.eType = orxTEXT_MARKER_TYPE_NONE;
+  stFallbacks.stColorData.eType = orxTEXT_MARKER_TYPE_NONE;
+  stFallbacks.stScaleData.eType = orxTEXT_MARKER_TYPE_NONE;
 
   /* If string is invalid, return it. */
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
@@ -706,9 +715,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           orxBank_Clear(pstDryRunStackBank);
 
           /* Let's see if this cleared out properly */
-          orxASSERT(stFallbacks.pstColorData == orxNULL || (stFallbacks.pstColorData != orxNULL) && (stFallbacks.pstColorData->eType == orxTEXT_MARKER_TYPE_REVERT));
-          orxASSERT(stFallbacks.pstFontData == orxNULL || (stFallbacks.pstFontData != orxNULL) && (stFallbacks.pstFontData->eType == orxTEXT_MARKER_TYPE_REVERT));
-          orxASSERT(stFallbacks.pstScaleData == orxNULL || (stFallbacks.pstScaleData != orxNULL) && (stFallbacks.pstScaleData->eType == orxTEXT_MARKER_TYPE_REVERT));
+          orxASSERT(stFallbacks.stColorData.eType == orxTEXT_MARKER_TYPE_REVERT);
+          orxASSERT(stFallbacks.stFontData.eType == orxTEXT_MARKER_TYPE_REVERT);
+          orxASSERT(stFallbacks.stScaleData.eType == orxTEXT_MARKER_TYPE_REVERT);
 
           /* Continue parsing */
         }
