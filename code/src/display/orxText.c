@@ -309,6 +309,8 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
     orxASSERT(pstPoppedEntry != orxNULL);
     orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
     orxTEXT_MARKER_DATA stData;
+    orxMemory_Set(&stData, 0, sizeof(orxTEXT_MARKER_DATA));
+    stData.eType = orxTEXT_MARKER_TYPE_NONE;
     /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
     if (pstPoppedEntry->pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
     {
