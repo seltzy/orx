@@ -578,6 +578,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxSTRING zCleanedString;
   orxU32 u32CleanedSize, u32CleanedSizeUsed;
 
+  orxTEXT_MARKER_DATA *pstLineHeightMarkerData;
+  const orxFONT *pstCurrentFont;
+  orxFLOAT fCurrentLineHeight;
+
   /* Used for a dry run of marker traversal */
   orxBANK      *pstDryRunMarkerBank, *pstDryRunStackBank;
   orxLINKLIST   stDryRunStack;
@@ -617,7 +621,19 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxASSERT(pstDryRunStackBank != orxNULL);
 
   stDryRunStack = (orxLINKLIST){0};
-  stFallbacks   = (orxTEXT_MARKER_FALLBACKS){orxNULL, orxNULL, orxNULL};
+
+  /* Initialize line height marker vars */
+  {
+    pstCurrentFont          = orxText_GetFont(_pstText);
+    fCurrentLineHeight      = orxFont_GetCharacterHeight(pstCurrentFont);
+
+    orxTEXT_MARKER_DATA stData;
+    stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
+    stData.fLineHeight = fCurrentLineHeight;
+
+    orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+    pstLineHeightMarkerData = &(pstMarker->stData);
+  }
 
   /* Parse the string using zMarkedString as a pointer to our current position in _zString */
   while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
@@ -625,16 +641,19 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* Start of marker? */
     if (*zMarkedString != orxTEXT_KC_MARKER_SYNTAX_START)
     {
-      /* Newline? Add a line height marker. */
+      /* Newline or start of string? Add a line height marker. */
       if (*zMarkedString == orxCHAR_LF)
       {
-        /* Only add the marker to the bank - this cannot be popped and therefore does not go on the stack. */
-        orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_Allocate(pstDryRunMarkerBank);
-        pstMarker->u32Index = u32CleanedSizeUsed;
-        pstMarker->stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
-        /* Line height marker value is determined by current font */
-        const orxFONT *pstFont = (stFallbacks.pstFontData != orxNULL) ? stFallbacks.pstFontData->pstFont : orxText_GetFont(_pstText);
-        pstMarker->stData.fLineHeight = orxFont_GetCharacterHeight(pstFont);
+        /* Only add it if it differs from the previous line's height */
+        if (fCurrentLineHeight != orxFont_GetCharacterHeight(pstCurrentFont))
+        {
+          fCurrentLineHeight = orxFont_GetCharacterHeight(pstCurrentFont);
+          orxTEXT_MARKER_DATA stData;
+          stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
+          stData.fLineHeight = fCurrentLineHeight;
+          orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+          pstLineHeightMarkerData = &(pstMarker->stData);
+        }
       }
 
       /* Non-marker text */
@@ -694,6 +713,20 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             /* Delete the popped entry */
             orxBank_Free(pstDryRunStackBank, pstPoppedEntry);
 
+            /* Update line height for this line */
+            if (stFallbackData.eType == orxTEXT_MARKER_TYPE_FONT)
+            {
+              pstCurrentFont = stFallbackData.pstFont;
+              fCurrentLineHeight = orxMAX(fCurrentLineHeight, orxFont_GetCharacterHeight(pstCurrentFont));
+              pstLineHeightMarkerData->fLineHeight = fCurrentLineHeight;
+            }
+            else if ((stFallbackData.eType == orxTEXT_MARKER_TYPE_REVERT) && (stFallbackData.eRevertType == orxTEXT_MARKER_TYPE_FONT))
+            {
+              pstCurrentFont = orxText_GetFont(_pstText);
+              fCurrentLineHeight = orxMAX(fCurrentLineHeight, orxFont_GetCharacterHeight(pstCurrentFont));
+              pstLineHeightMarkerData->fLineHeight = fCurrentLineHeight;
+            }
+
             /* Update the processors fallback data to be the newly added marker's data */
             /* Get a pointer to the appropriate fallback data */
             orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stFallbackData.eRevertType, &stFallbacks, &stFallbackData);
@@ -719,6 +752,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           orxASSERT(stFallbacks.stFontData.eType == orxTEXT_MARKER_TYPE_REVERT);
           orxASSERT(stFallbacks.stScaleData.eType == orxTEXT_MARKER_TYPE_REVERT);
 
+          /* Update line height for this line */
+          pstCurrentFont = orxText_GetFont(_pstText);
+          fCurrentLineHeight = orxMAX(fCurrentLineHeight, orxFont_GetCharacterHeight(pstCurrentFont));
+          pstLineHeightMarkerData->fLineHeight = fCurrentLineHeight;
+
           /* Continue parsing */
         }
         else
@@ -738,6 +776,13 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             {
               /* Add a marker cell (implicitly represents final traversal order )*/
               orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+              /* Update line height if it's a font */
+              if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_FONT)
+              {
+                pstCurrentFont = pstMarker->stData.pstFont;
+                fCurrentLineHeight = orxMAX(fCurrentLineHeight, orxFont_GetCharacterHeight(pstCurrentFont));
+                pstLineHeightMarkerData->fLineHeight = fCurrentLineHeight;
+              }
               /* Push data to stack with fallback data */
               orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &(pstMarker->stData), pstFallbackData);
             }
