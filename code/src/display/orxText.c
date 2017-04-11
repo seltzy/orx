@@ -265,7 +265,7 @@ static orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST 
  * @param[in]  _pstFallbacks  Pointer to fallback structure (used for parser state)
  * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL
  */
-static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(orxTEXT_MARKER_TYPE _eType, const orxTEXT_MARKER_FALLBACKS *_pstFallbacks, const orxTEXT_MARKER_DATA *_pstData)
+static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(orxTEXT_MARKER_TYPE _eType, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, const orxTEXT_MARKER_DATA *_pstData)
 {
   orxASSERT(_pstFallbacks != orxNULL);
   orxASSERT(_pstData != orxNULL);
