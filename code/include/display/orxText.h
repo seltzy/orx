@@ -47,39 +47,6 @@
 
 #include "display/orxFont.h"
 
-/** Text marker types */
-typedef enum __orxTEXT_MARKER_TYPE_t
-{
-  orxTEXT_MARKER_TYPE_FONT = 0,
-  orxTEXT_MARKER_TYPE_COLOR,
-  orxTEXT_MARKER_TYPE_SCALE,
-  orxTEXT_MARKER_TYPE_REVERT,
-  orxTEXT_MARKER_TYPE_LINE_HEIGHT,
-  orxTEXT_MARKER_TYPE_POP,
-  orxTEXT_MARKER_TYPE_CLEAR,
-  orxTEXT_MARKER_TYPE_NUMBER, /* Sentinel value for enum boundary */
-  orxTEXT_MARKER_TYPE_NONE = orxENUM_NONE
-} orxTEXT_MARKER_TYPE;
-
-/** Text marker data structure */
-typedef struct __orxTEXT_MARKER_DATA_t {
-  orxTEXT_MARKER_TYPE    eType;
-  union
-  {
-    const orxFONT       *pstFont;
-    orxRGBA              stRGBA;
-    orxVECTOR            vScale;
-    orxFLOAT             fLineHeight;
-    orxTEXT_MARKER_TYPE  eRevertType;
-  };
-} orxTEXT_MARKER_DATA;
-
-/** Text marker structure */
-typedef struct __orxTEXT_MARKER_t
-{
-  orxU32                 u32Index;
-  orxTEXT_MARKER_DATA    stData;
-} orxTEXT_MARKER;
 
 /** Internal text structure */
 typedef struct __orxTEXT_t                orxTEXT;
