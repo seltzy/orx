@@ -1850,7 +1850,7 @@ orxBITMAP *orxFASTCALL orxDisplay_GLFW_GetScreenBitmap()
   return sstDisplay.pstScreen;
 }
 
-orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, orxHANDLE _hMarkerArray, const orxBITMAP *_pstFont, const orxCHARACTER_MAP *_pstMap, const orxDISPLAY_TRANSFORM *_pstTransform, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode)
+orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, const orxTEXT_MARKER *_pstMarkerArray, orxU32 _u32MarkerCounter, const orxBITMAP *_pstFont, const orxCHARACTER_MAP *_pstMap, const orxDISPLAY_TRANSFORM *_pstTransform, orxDISPLAY_SMOOTHING _eSmoothing, orxDISPLAY_BLEND_MODE _eBlendMode)
 {
   orxDISPLAY_MATRIX       mTransform;
   const orxCHAR          *pc;
@@ -1862,7 +1862,6 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   const orxCHARACTER_MAP *pstMarkerFontCharacterMap = _pstMap;
   orxRGBA                 stMarkerBitmapColor       = _pstFont->stColor;
   orxVECTOR               vMarkerGlyphScale         = orxVECTOR_1;
-  const orxTEXT_MARKER   *pstMarkerArray            = (const orxTEXT_MARKER *)_hMarkerArray;
   orxSTATUS               eResult = orxSTATUS_SUCCESS;
 
   /* Checks */
@@ -1881,22 +1880,26 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
   /* Prepares font for drawing */
   orxDisplay_GLFW_PrepareBitmap(_pstFont, _eSmoothing, _eBlendMode);
 
+  /* Marker index doesn't reset between character iterations */
+  orxU32 u32MarkerIndex = 0;
+
   /* For all characters */
   for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_zString, &pc), u32CharacterIndex = 0, fX = 0.0f, fY = 0.0f, fLineHeight = fHeight;
       u32CharacterCodePoint != orxCHAR_NULL;
       u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
   {
     /* Step through markers at this character index and update rendering data accordingly */
-    for ( ; (pstMarkerArray != orxNULL) && (pstMarkerArray->u32Index == u32CharacterIndex) ; pstMarkerArray++ )
+    for (; (u32MarkerIndex < _u32MarkerCounter) && (_pstMarkerArray[u32MarkerIndex].u32Index == u32CharacterIndex) ; u32MarkerIndex++ )
     {
-      orxTEXT_MARKER_TYPE eType = pstMarkerArray->stData.eType;
+      /* TODO: Stop dereferncing everywhere by making this a non-pointer */
+      const orxTEXT_MARKER *pstMarker = _pstMarkerArray + u32MarkerIndex;
+      orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
       switch (eType)
       {
       case orxTEXT_MARKER_TYPE_FONT:
       {
-        const orxFONT *pstFont = pstMarkerArray->stData.pstFont;
-        pstMarkerFontBitmap = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
-        pstMarkerFontCharacterMap = orxFont_GetMap(pstFont);
+        pstMarkerFontBitmap = pstMarker->stData.stFontData.pstFont;
+        pstMarkerFontCharacterMap = pstMarker->stData.stFontData.pstMap;
         fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
         /* Prepares font for drawing */
         orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
@@ -1904,22 +1907,22 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, or
       }
       case orxTEXT_MARKER_TYPE_COLOR:
       {
-        stMarkerBitmapColor = pstMarkerArray->stData.stRGBA;
+        stMarkerBitmapColor = pstMarker->stData.stRGBA;
         break;
       }
       case orxTEXT_MARKER_TYPE_SCALE:
       {
-        vMarkerGlyphScale = pstMarkerArray->stData.vScale;
+        vMarkerGlyphScale = pstMarker->stData.vScale;
         break;
       }
       case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
       {
-        fLineHeight = pstMarkerArray->stData.fLineHeight;
+        fLineHeight = pstMarker->stData.fLineHeight;
         break;
       }
       case orxTEXT_MARKER_TYPE_REVERT:
       {
-        orxTEXT_MARKER_TYPE eRevertType = pstMarkerArray->stData.eRevertType;
+        orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
         switch (eRevertType)
         {
         case orxTEXT_MARKER_TYPE_FONT:
