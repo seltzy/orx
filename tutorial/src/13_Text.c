@@ -51,6 +51,55 @@
 
 orxTEXT *pstTestText = orxNULL;
 
+void DebugText(const orxTEXT *_pstText)
+{
+  orxLOG("String: %s", orxText_GetString(_pstText));
+  const orxTEXT_MARKER *pstMarkerArray = orxText_GetMarkerArray(_pstText);
+  orxU32 u32MarkerCount = orxText_GetMarkerCounter(_pstText);
+  for (orxU32 u32Index = 0; u32Index < u32MarkerCount; u32Index++)
+  {
+    const orxTEXT_MARKER stMarker = pstMarkerArray[u32Index];
+    orxLOG("Marker @ %u", stMarker.u32Index);
+    switch (stMarker.stData.eType)
+    {
+    case orxTEXT_MARKER_TYPE_FONT:
+      orxLOG("  Font = (%p, %p, %u)", stMarker.stData.stFontData.pstMap, stMarker.stData.stFontData.pstFont, stMarker.stData.stFontData.pstMap->fCharacterHeight);
+      break;
+    case orxTEXT_MARKER_TYPE_COLOR:
+      orxLOG("  Color = (%u, %u, %u)", stMarker.stData.stRGBA.u8R, stMarker.stData.stRGBA.u8G, stMarker.stData.stRGBA.u8B);
+      break;
+    case orxTEXT_MARKER_TYPE_SCALE:
+      orxLOG("  Scale = (%f, %f, %f)", stMarker.stData.vScale.fX, stMarker.stData.vScale.fY, stMarker.stData.vScale.fZ);
+      break;
+    case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+      orxLOG("  Line Height = %u", stMarker.stData.fLineHeight);
+      break;
+    case orxTEXT_MARKER_TYPE_REVERT:
+    {
+      const orxSTRING zType = "none";
+      switch(stMarker.stData.eRevertType)
+      {
+      case orxTEXT_MARKER_TYPE_FONT:
+        zType = "font";
+        break;
+      case orxTEXT_MARKER_TYPE_COLOR:
+        zType = "color";
+        break;
+      case orxTEXT_MARKER_TYPE_SCALE:
+        zType = "scale";
+        break;
+      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+        zType = "line height";
+        break;
+      }
+      orxLOG("  Revert = %s", zType);
+      break;
+    }
+    default:
+      orxLOG("  Invalid Type");
+    }
+  }
+}
 void ReloadTexts() {
   /* Gets first text */
   orxTEXT *pstText = orxTEXT(orxStructure_GetFirst(orxSTRUCTURE_ID_TEXT));
@@ -63,7 +112,10 @@ void ReloadTexts() {
     orxText_SetString(pstText, orxConfig_GetString("String"));
     orxConfig_PopSection();
 
-    /* Gets first text */
+    /* Output debug data */
+    DebugText(pstText);
+
+    /* Gets next text */
     pstText = orxTEXT(orxStructure_GetNext(pstText));
   }
 }
