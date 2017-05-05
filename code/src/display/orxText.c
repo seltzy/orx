@@ -259,33 +259,57 @@ static orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST 
   return pstResult;
 }
 
-/** Checks the type and returns a pointer to the appropriate fallback data pointer
- *  This is used to manage marker processing state when pushing/popping marker stack entries
- * @param[in]  _eType         Concerned text
- * @param[in]  _pstFallbacks  Pointer to fallback structure (used for parser state)
- * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL
+/** Updates corresponding marker data member of the fallback struct using the the type of the given marker data, returning a pointer to the updated member.
+ *  Non-revertable types (such as line height) will cause this function to return orxNULL.
+ * @param[in]  _pstData       Pointer to marker data to update fallback struct with
+ * @param[in]  _pstFallbacks  Pointer to fallback structure
+ * @return     Matching orxTEXT_MARKER_DATA in _pstFallbacks / orxNULL if _pstData had invalid type
  */
-static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(orxTEXT_MARKER_TYPE _eType, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, const orxTEXT_MARKER_DATA *_pstData)
+static orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(const orxTEXT_MARKER_DATA *_pstData, orxTEXT_MARKER_FALLBACKS *_pstFallbacks)
 {
+  orxTEXT_MARKER_DATA *pstResult;
+  orxTEXT_MARKER_TYPE  eType;
+  /* Argument checks */
   orxASSERT(_pstFallbacks != orxNULL);
   orxASSERT(_pstData != orxNULL);
-  orxTEXT_MARKER_DATA *pstResult;
-  /* Get a pointer to the appropriate fallback data */
-  switch(_eType)
+  /* EDGE CASE: Markers of type orxTEXT_MARKER_TYPE_REVERT can be stored as a fallback for any revertable type */
+  if (_pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
   {
+    /* Set eType to eRevertType so the proper struct member can be selected/updated below */
+    eType = _pstData->eRevertType;
+  }
+  else
+  {
+    eType = _pstData->eType;
+  }
+  /* Marker type checks */
+  orxASSERT(eType != orxTEXT_MARKER_TYPE_NONE);
+  orxASSERT(eType < orxTEXT_MARKER_TYPE_NUMBER);
+  /* Get a pointer to the appropriate fallback data */
+  switch(eType)
+  {
+    /* TODO: This is broken - updating pstResult gives us the pointer to the newly updated data, but what we really want is the pointer to the previously set data. */
+    /* Since this struct stores copies, this is currently impossible */
   case orxTEXT_MARKER_TYPE_COLOR:
+    /* Copy data */
     _pstFallbacks->stColorData = *_pstData;
+    /* Update result */
     pstResult = &_pstFallbacks->stColorData;
     break;
   case orxTEXT_MARKER_TYPE_FONT:
+    /* Copy data */
     _pstFallbacks->stFontData = *_pstData;
+    /* Update result */
     pstResult = &_pstFallbacks->stFontData;
     break;
   case orxTEXT_MARKER_TYPE_SCALE:
+    /* Copy data */
     _pstFallbacks->stScaleData = *_pstData;
+    /* Update result */
     pstResult = &_pstFallbacks->stScaleData;
     break;
   default:
+    /* Update result */
     pstResult = orxNULL;
   }
   /* Done! */
@@ -298,9 +322,9 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
   /* Create a temporary fallbacks structure to keep track of what has already been reverted */
   orxTEXT_MARKER_FALLBACKS stFallbacksReverted;
   orxMemory_Set(&stFallbacksReverted, 0, sizeof(orxTEXT_MARKER_FALLBACKS));
-  stFallbacksReverted.stFontData.eType = orxTEXT_MARKER_TYPE_NONE;
-  stFallbacksReverted.stColorData.eType = orxTEXT_MARKER_TYPE_NONE;
-  stFallbacksReverted.stScaleData.eType = orxTEXT_MARKER_TYPE_NONE;
+  stFallbacksReverted.stFontData.eType = orxTEXT_MARKER_TYPE_FONT;
+  stFallbacksReverted.stColorData.eType = orxTEXT_MARKER_TYPE_COLOR;
+  stFallbacksReverted.stScaleData.eType = orxTEXT_MARKER_TYPE_SCALE;
   /* Pop stack until it's empty */
   while (orxLinkList_GetCounter(_pstStack) > 0)
   {
@@ -335,10 +359,10 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
     orxBank_Free(_pstStackBank, pstPoppedEntry);
 
     /* Update the fallback data to add as revert markers */
-    orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stData.eRevertType, &stFallbacksReverted, &stData);
+    orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&stData, &stFallbacksReverted);
     if (pstFallbackData != orxNULL)
     {
-      pstFallbackData = orxText_UpdateMarkerFallback(stData.eRevertType, _pstFallbacks, &stData);
+      pstFallbackData = orxText_UpdateMarkerFallback(&stData, _pstFallbacks);
       orxASSERT(pstFallbackData != orxNULL);
     }
   }
@@ -591,6 +615,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* Used for keeping track of marker type fallbacks when manipulating the stack */
   orxTEXT_MARKER_FALLBACKS stFallbacks;
   orxMemory_Set(&stFallbacks, 0, sizeof(orxTEXT_MARKER_FALLBACKS));
+  /* TODO: Initialize these differently? */
   stFallbacks.stFontData.eType = orxTEXT_MARKER_TYPE_NONE;
   stFallbacks.stColorData.eType = orxTEXT_MARKER_TYPE_NONE;
   stFallbacks.stScaleData.eType = orxTEXT_MARKER_TYPE_NONE;
@@ -730,7 +755,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
             /* Update the processors fallback data to be the newly added marker's data */
             /* Get a pointer to the appropriate fallback data */
-            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(stFallbackData.eRevertType, &stFallbacks, &stFallbackData);
+            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&stFallbackData, &stFallbacks);
             if (pstFallbackData != orxNULL)
             {
               orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
@@ -771,15 +796,16 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           /* Add/Push marker */
           if (eResult == orxSTATUS_SUCCESS)
           {
-            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(eType, &stFallbacks, &stData);
+            /* TODO: I think this is updating the fallback such that popping sets it to the most recent value, effectively doing NOTHING. Indeed, since fallbacks no longer use pointers, what we're getting back is a pointer to the copy of stData stored in the fallback struct. When the pointer is returned, it is already completely useless. It's pointing to a member address in the fallback structure, which is a pointer to the copied data. That pointer will never, ever, change to something useful, but the data it points to will continue to change. This is why popping effectively does nothing. What we really want is a pointer to the member in the heap-allocated marker data. Either fallbacks need to be pointers, or this code will need to adopt a broader data copying strategy. I think what needs to happen is going back to pointers (or maybe double-pointers) in the fallbacks struct. It'd also reduce complexity if I ensured there are stack allocated revert datas for the fallback struct to initially be filled with and initially point to in marker stack entries. TODO: This problem indicates a need for a new assertion. */
+            orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&stData, &stFallbacks);
             if (pstFallbackData != orxNULL)
             {
-              /* Add a marker cell (implicitly represents final traversal order )*/
+              /* Add marker */
               orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
               /* Update line height if it's a font */
-              if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_FONT)
+              if (stData.eType == orxTEXT_MARKER_TYPE_FONT)
               {
-                stCurrentFontData = pstMarker->stData;
+                stCurrentFontData = stData;
                 pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
               }
               /* Push data to stack with fallback data */
