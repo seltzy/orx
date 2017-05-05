@@ -328,6 +328,8 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
   stFallbacksReverted.pstColorMarkerData    = &stTempColorMarkerData;
   stFallbacksReverted.pstScaleMarkerData    = &stTempScaleMarkerData;
 
+  const orxTEXT_MARKER_DATA *pstFallbackData = orxNULL;
+
   /* Pop stack until it's empty */
   while (orxLinkList_GetCounter(_pstStack) > 0)
   {
@@ -361,19 +363,23 @@ static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU
     /* Delete the popped entry */
     orxBank_Free(_pstStackBank, pstPoppedEntry);
 
-    const orxTEXT_MARKER_DATA *pstFallbackData = orxNULL;
     /* Update the fallback data to add as revert markers */
     pstFallbackData = orxText_UpdateMarkerFallback(&stData, &stFallbacksReverted);
     orxASSERT(pstFallbackData != orxNULL);
-    /* Update the fallback data used by the parser */
-    /* TODO: does this need to get done here, or could it be done last? */
-    pstFallbackData = orxText_UpdateMarkerFallback(&stData, _pstFallbacks);
-    orxASSERT(pstFallbackData != orxNULL);
   }
-  /* Attempt to add the actual reverts at this position */
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstColorMarkerData);
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstFontMarkerData);
-  orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstScaleMarkerData);
+  const orxTEXT_MARKER *pstRevertMarker = orxNULL;
+  /* Attempt to add the actual reverts at this position and update fallback data used by the parser */
+  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstColorMarkerData);
+  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
+  orxASSERT(pstFallbackData != orxNULL);
+
+  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstFontMarkerData);
+  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
+  orxASSERT(pstFallbackData != orxNULL);
+
+  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstScaleMarkerData);
+  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
+  orxASSERT(pstFallbackData != orxNULL);
 }
 
 /** Parses marker value string
@@ -620,7 +626,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxMemory_Set(&stFallbacks, 0, sizeof(orxTEXT_MARKER_FALLBACKS));
   orxTEXT_MARKER_DATA stTempFontMarkerData, stTempColorMarkerData, stTempScaleMarkerData;
   /* TODO: Initialize these differently? */
+#ifdef __orxMSVC__
   stTempFontMarkerData = stTempColorMarkerData = stTempScaleMarkerData = {orxTEXT_MARKER_TYPE_NONE, NULL};
+#else
+  stTempFontMarkerData = stTempColorMarkerData = stTempScaleMarkerData = (orxTEXT_MARKER_DATA){orxTEXT_MARKER_TYPE_NONE, NULL};
+#endif
   stFallbacks.pstFontMarkerData = &stTempFontMarkerData;
   stFallbacks.pstColorMarkerData = &stTempColorMarkerData;
   stFallbacks.pstScaleMarkerData = &stTempScaleMarkerData;
