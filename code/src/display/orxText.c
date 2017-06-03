@@ -568,7 +568,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   }
 
   /* Parse the string using zMarkedString as a pointer to our current position in _zString */
-  while ((zMarkedString != orxNULL) && (zMarkedString != orxSTRING_EMPTY) && (*zMarkedString != orxCHAR_NULL))
+  while ((zMarkedString != orxNULL) && (*zMarkedString != orxCHAR_NULL))
   {
     /* Start of marker? */
     if (*zMarkedString != orxTEXT_KC_MARKER_SYNTAX_START)
