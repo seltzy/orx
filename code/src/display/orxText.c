@@ -212,7 +212,7 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
   return eResult;
 }
 
-static orxTEXT_MARKER *orxFASTCALL orxText_AddMarker(orxBANK *_pstMarkerBank, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData)
+static orxTEXT_MARKER *orxFASTCALL orxText_CreateMarker(orxBANK *_pstMarkerBank, orxU32 _u32Index, const orxTEXT_MARKER_DATA *_pstData)
 {
   orxTEXT_MARKER *pstResult;
 
@@ -675,7 +675,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
     stData.fLineHeight = stCurrentFontData.stFontData.pstMap->fCharacterHeight;
 
-    orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+    orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
     pstLineHeightMarkerData = &(pstMarker->stData);
   }
 
@@ -694,7 +694,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           orxTEXT_MARKER_DATA stData;
           stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
           stData.fLineHeight = stCurrentFontData.stFontData.pstMap->fCharacterHeight;
-          orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+          orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
           pstLineHeightMarkerData = &(pstMarker->stData);
         }
       }
@@ -768,13 +768,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
               pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
             }
 
-            /* Update the processors fallback data to be the newly added marker's data */
-            /* Get a pointer to the appropriate fallback data */
-            const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&stFallbackData, &stFallbacks);
-            if (pstFallbackData != orxNULL)
-            {
-              orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
-            }
+            /* Copy the fallback data into a new marker */
+            const orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
+            /* Update the processor fallback data to be the newly added marker's data */
+            orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
           }
 
           /* Continue parsing */
@@ -811,24 +808,22 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
           /* Parse the marker value into marker data */
           orxSTATUS eResult = orxText_ParseMarkerValue(_pstText, &stData, _zString, (orxU32)(zMarkedString - _zString), &zMarkedString);
-          /* Add/Push marker */
+          /* Add marker */
           if (eResult == orxSTATUS_SUCCESS)
           {
-            /* TODO: I think this is updating the fallback such that popping sets it to the most recent value, effectively doing NOTHING. Indeed, since fallbacks no longer use pointers, what we're getting back is a pointer to the copy of stData stored in the fallback struct. When the pointer is returned, it is already completely useless. It's pointing to a member address in the fallback structure, which is a pointer to the copied data. That pointer will never, ever, change to something useful, but the data it points to will continue to change. This is why popping effectively does nothing. What we really want is a pointer to the member in the heap-allocated marker data. Either fallbacks need to be pointers, or this code will need to adopt a broader data copying strategy. I think what needs to happen is going back to pointers (or maybe double-pointers) in the fallbacks struct. It'd also reduce complexity if I ensured there are stack allocated revert datas for the fallback struct to initially be filled with and initially point to in marker stack entries. TODO: This problem indicates a need for a new assertion. */
-            const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&stData, &stFallbacks);
-            if (pstFallbackData != orxNULL)
+            /* Create marker */
+            orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
+            orxASSERT(pstMarker != orxNULL);
+            /* Update line height if it's a font */
+            if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_FONT)
             {
-              /* Add marker */
-              orxTEXT_MARKER *pstMarker = orxText_AddMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
-              /* Update line height if it's a font */
-              if (stData.eType == orxTEXT_MARKER_TYPE_FONT)
-              {
-                stCurrentFontData = stData;
-                pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
-              }
-              /* Push data to stack with fallback data */
-              orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &(pstMarker->stData), pstFallbackData);
+              stCurrentFontData = stData;
+              pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
             }
+            /* Get the data for this marker to fall back to */
+            const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
+            /* Push data to stack with fallback data */
+            const orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &pstMarker->stData, pstFallbackData);
           }
           /* Continue parsing */
         }
