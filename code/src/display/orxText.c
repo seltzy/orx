@@ -268,7 +268,7 @@ static const orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(const
   eType = (_pstNewData->eType == orxTEXT_MARKER_TYPE_REVERT) ? _pstNewData->eRevertType : _pstNewData->eType;
   /* Marker type range checks */
   orxASSERT(eType != orxTEXT_MARKER_TYPE_NONE);
-  orxASSERT(eType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+  orxASSERT(eType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
   /* SANITY CHECK: If someone tries to update a fallback to its current value, it means they did something wrong (like pass in a pointer to marker data that lost scope before the next call to this function) */
   orxASSERT(_pstFallbacks[eType] != _pstNewData);
   /* Get a pointer to the appropriate fallback data */
@@ -673,7 +673,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
              by end of loop, all data in fallback array should point to revert marker or null
              clear stack
           */
-          for (orxU32 u32FallbackType = 0; u32FallbackType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
+          for (orxU32 u32FallbackType = 0; u32FallbackType < orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
           {
             ppstFallbacks[u32FallbackType] = orxNULL;
           }
@@ -687,7 +687,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
             /* Sanity checks - Integrity of stDryRunStack must not be violated */
             orxASSERT(pstPoppedEntry->pstData->eType != orxTEXT_MARKER_TYPE_NONE);
-            orxASSERT(pstPoppedEntry->pstData->eType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+            orxASSERT(pstPoppedEntry->pstData->eType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
 
             /* Only add revert markers once per type */
             if (ppstFallbacks[pstPoppedEntry->pstData->eType] != orxNULL)
@@ -714,7 +714,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           orxBank_Clear(pstDryRunStackBank);
 
           /* Fallback checks */
-          for (orxU32 u32FallbackType = 0; u32FallbackType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
+          for (orxU32 u32FallbackType = 0; u32FallbackType < orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
           {
             const orxTEXT_MARKER_DATA *pstFallbackData = ppstFallbacks[u32FallbackType];
             /* orxNULL is an acceptable value for fallback data - it simply means a marker of that type has not previously existed */
@@ -724,7 +724,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             }
             orxASSERT(pstFallbackData->eType == orxTEXT_MARKER_TYPE_REVERT);
             orxASSERT(pstFallbackData->eRevertType != orxTEXT_MARKER_TYPE_NONE);
-            orxASSERT(pstFallbackData->eRevertType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+            orxASSERT(pstFallbackData->eRevertType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
           }
 
           /* Update line height for this line */
