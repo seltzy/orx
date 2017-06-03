@@ -239,7 +239,7 @@ static const orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLIN
   orxASSERT(_pstStack != orxNULL);
   orxASSERT(_pstData != orxNULL);
   orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
-  orxASSERT(_pstData->eType < orxTEXT_MARKER_TYPE_NUMBER);
+  orxASSERT(_pstData->eType < orxTEXT_MARKER_TYPE_NUMBER_PARSED);
   /* Allocate and initialize marker stack entry */
   orxTEXT_MARKER_NODE *pstResult = (orxTEXT_MARKER_NODE *) orxBank_Allocate(_pstStackBank);
   orxASSERT(pstResult != orxNULL);
