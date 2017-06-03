@@ -316,72 +316,6 @@ static const orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(const
   return pstResult;
 }
 
-static void orxFASTCALL orxText_ParserClearMarkers(orxBANK *_pstMarkerBank, orxU32 _u32Index, orxTEXT_MARKER_FALLBACKS *_pstFallbacks, orxLINKLIST *_pstStack, orxBANK *_pstStackBank)
-{
-  /* When clearing, we only want to revert to each type once, and only if necessary. */
-  /* Create a temporary fallbacks structure to keep track of what has already been reverted */
-  orxTEXT_MARKER_FALLBACKS stFallbacksReverted;
-  orxTEXT_MARKER_DATA stTempFontMarkerData  = {orxTEXT_MARKER_TYPE_FONT,  NULL};
-  orxTEXT_MARKER_DATA stTempColorMarkerData = {orxTEXT_MARKER_TYPE_COLOR, NULL};
-  orxTEXT_MARKER_DATA stTempScaleMarkerData = {orxTEXT_MARKER_TYPE_SCALE, NULL};
-  stFallbacksReverted.pstFontMarkerData     = &stTempFontMarkerData;
-  stFallbacksReverted.pstColorMarkerData    = &stTempColorMarkerData;
-  stFallbacksReverted.pstScaleMarkerData    = &stTempScaleMarkerData;
-
-  const orxTEXT_MARKER_DATA *pstFallbackData = orxNULL;
-
-  /* Pop stack until it's empty */
-  while (orxLinkList_GetCounter(_pstStack) > 0)
-  {
-    /* Pop the stack */
-    orxTEXT_MARKER_NODE *pstPoppedEntry = (orxTEXT_MARKER_NODE *) orxLinkList_GetLast(_pstStack);
-    orxASSERT(pstPoppedEntry != orxNULL);
-    orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
-
-    orxTEXT_MARKER_DATA stData = {orxTEXT_MARKER_TYPE_NONE, NULL};
-
-    /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
-    if (pstPoppedEntry->pstData->eType == orxTEXT_MARKER_TYPE_REVERT)
-    {
-      /* The popped entry was already a revert? Someone isn't keeping track of how much they clear/pop the stack. */
-      /* Simply copy the revert data */
-      stData = *(pstPoppedEntry->pstData);
-    }
-    else
-    {
-      /* Create a new revert */
-      stData.eType = orxTEXT_MARKER_TYPE_REVERT;
-      stData.eRevertType = pstPoppedEntry->pstData->eType;
-    }
-
-    /* Checks */
-    orxASSERT(stData.eType == orxTEXT_MARKER_TYPE_REVERT);
-    orxASSERT(stData.eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
-              stData.eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
-              stData.eRevertType == orxTEXT_MARKER_TYPE_SCALE);
-
-    /* Delete the popped entry */
-    orxBank_Free(_pstStackBank, pstPoppedEntry);
-
-    /* Update the fallback data to add as revert markers */
-    pstFallbackData = orxText_UpdateMarkerFallback(&stData, &stFallbacksReverted);
-    orxASSERT(pstFallbackData != orxNULL);
-  }
-  const orxTEXT_MARKER *pstRevertMarker = orxNULL;
-  /* Attempt to add the actual reverts at this position and update fallback data used by the parser */
-  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstColorMarkerData);
-  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
-  orxASSERT(pstFallbackData != orxNULL);
-
-  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstFontMarkerData);
-  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
-  orxASSERT(pstFallbackData != orxNULL);
-
-  pstRevertMarker = orxText_AddMarker(_pstMarkerBank, _u32Index, stFallbacksReverted.pstScaleMarkerData);
-  pstFallbackData = orxText_UpdateMarkerFallback(&pstRevertMarker->stData, _pstFallbacks);
-  orxASSERT(pstFallbackData != orxNULL);
-}
-
 /** Parses marker value string
  * @param[in]      _pstText             Concerned text
  * @param[in]      _eType               Expected marker data type
@@ -779,21 +713,70 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         else if (eType == orxTEXT_MARKER_TYPE_CLEAR)
         {
           /* Clear out the stack */
-          orxText_ParserClearMarkers(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbacks, &stDryRunStack, pstDryRunStackBank);
+          /* TODO: Rewrite this to be simpler for clarity */
+          /* clear fallback array to defaults
+             while stack not empty
+              pop
+              if entry type not represented in fallback array, add revert marker for that type and store in fallback array.
+             by end of loop, all data in fallback array should point to revert marker or null
+             clear stack
+          */
+          for (orxU32 u32FallbackType = 0; u32FallbackType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
+          {
+            ppstFallbacks[u32FallbackType] = orxNULL;
+          }
+          /* We can't pop the stack if it's already empty */
+          while (orxLinkList_GetCounter(&stDryRunStack) > 0)
+          {
+            /* Pop the stack */
+            orxTEXT_MARKER_NODE *pstPoppedEntry = (orxTEXT_MARKER_NODE *) orxLinkList_GetLast(&stDryRunStack);
+            orxASSERT(pstPoppedEntry != orxNULL);
+            orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
 
-          /* Clear storage */
+            /* Sanity checks - Integrity of stDryRunStack must not be violated */
+            orxASSERT(pstPoppedEntry->pstData->eType != orxTEXT_MARKER_TYPE_NONE);
+            orxASSERT(pstPoppedEntry->pstData->eType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+
+            /* Only add revert markers once per type */
+            if (ppstFallbacks[pstPoppedEntry->pstData->eType] != orxNULL)
+            {
+              continue;
+            }
+
+            /* Create revert data for a new marker */
+            orxTEXT_MARKER_DATA stFallbackData;
+            stFallbackData.eType = orxTEXT_MARKER_TYPE_REVERT;
+            stFallbackData.eRevertType = pstPoppedEntry->pstData->eType;
+
+            /* Delete the popped entry */
+            orxBank_Free(pstDryRunStackBank, pstPoppedEntry);
+
+            /* Copy the fallback data into a new marker */
+            const orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
+            /* Update the processor fallback data to be the newly added marker's data */
+            orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
+          }
+
+          /* Clear stack storage */
           orxLinkList_Clean(&stDryRunStack);
           orxBank_Clear(pstDryRunStackBank);
 
-          /* Let's see if this cleared out properly */
-          orxASSERT(stFallbacks.pstFontMarkerData->eType == orxTEXT_MARKER_TYPE_REVERT);
-          orxASSERT(stFallbacks.pstFontMarkerData->eRevertType == orxTEXT_MARKER_TYPE_FONT);
-          orxASSERT(stFallbacks.pstColorMarkerData->eType == orxTEXT_MARKER_TYPE_REVERT);
-          orxASSERT(stFallbacks.pstColorMarkerData->eRevertType == orxTEXT_MARKER_TYPE_COLOR);
-          orxASSERT(stFallbacks.pstScaleMarkerData->eType == orxTEXT_MARKER_TYPE_REVERT);
-          orxASSERT(stFallbacks.pstScaleMarkerData->eRevertType == orxTEXT_MARKER_TYPE_SCALE);
+          /* Fallback checks */
+          for (orxU32 u32FallbackType = 0; u32FallbackType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
+          {
+            const orxTEXT_MARKER_DATA *pstFallbackData = ppstFallbacks[u32FallbackType];
+            /* orxNULL is an acceptable value for fallback data - it simply means a marker of that type has not previously existed */
+            if (pstFallbackData == orxNULL)
+            {
+              continue;
+            }
+            orxASSERT(pstFallbackData->eType == orxTEXT_MARKER_TYPE_REVERT);
+            orxASSERT(pstFallbackData->eRevertType != orxTEXT_MARKER_TYPE_NONE);
+            orxASSERT(pstFallbackData->eRevertType < (orxS32)orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+          }
 
           /* Update line height for this line */
+          /* TODO: generalize this */
           stCurrentFontData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
           pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
 
