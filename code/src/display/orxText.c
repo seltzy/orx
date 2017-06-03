@@ -236,14 +236,14 @@ static orxTEXT_MARKER *orxFASTCALL orxText_CreateMarker(orxBANK *_pstMarkerBank,
 static const orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
 {
   orxASSERT(_pstStackBank != orxNULL);
-  orxASSERT(_pstStack != orxNULL);
-  orxASSERT(_pstData != orxNULL);
+  orxASSERT(_pstStack     != orxNULL);
+  orxASSERT(_pstData      != orxNULL);
   orxASSERT(_pstData->eType != orxTEXT_MARKER_TYPE_NONE);
   orxASSERT(_pstData->eType < orxTEXT_MARKER_TYPE_NUMBER_PARSED);
   /* Allocate and initialize marker stack entry */
   orxTEXT_MARKER_NODE *pstResult = (orxTEXT_MARKER_NODE *) orxBank_Allocate(_pstStackBank);
   orxASSERT(pstResult != orxNULL);
-  pstResult->pstData = _pstData;
+  pstResult->pstData         = _pstData;
   pstResult->pstFallbackData = _pstFallbackData;
   orxLinkList_AddEnd(_pstStack, (orxLINKLIST_NODE *) pstResult);
   return pstResult;
@@ -333,7 +333,7 @@ static orxSTATUS orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, o
     /* Check style values - if something is invalid, fall through to default */
     switch(_pstData->eType)
     {
-      /* Attempt to store font style */
+    /* Attempt to store font style */
     case orxTEXT_MARKER_TYPE_FONT:
     {
       orxCHAR cPrevValue = zValueString[u32ValueStringSize - 2];
@@ -480,6 +480,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
     {
       zNextWhiteSpace++;
     }
+
     /* Make a temporary string to hold the bad value for logging */
     orxU32 u32TypeStringSize = (orxU32)(zNextWhiteSpace - zTypeStart + 1);
 #ifdef __orxMSVC__
@@ -489,6 +490,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
 #endif /* __orxMSVC__ */
     orxString_NCopy(zTypeString, zTypeStart, u32TypeStringSize - 1);
     zTypeString[u32TypeStringSize - 1] = orxCHAR_NULL;
+
     /* Log warning */
     orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeString, orxSTRING_EMPTY, _zString);
 
@@ -630,7 +632,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             if (pstPoppedEntry->pstFallbackData == orxNULL)
             {
               /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
-              stFallbackData.eType = orxTEXT_MARKER_TYPE_REVERT;
+              stFallbackData.eType       = orxTEXT_MARKER_TYPE_REVERT;
               stFallbackData.eRevertType = pstPoppedEntry->pstData->eType;
             }
             else
