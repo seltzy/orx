@@ -257,6 +257,7 @@ static const orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLIN
  */
 static const orxTEXT_MARKER_DATA *orxFASTCALL orxText_UpdateMarkerFallback(const orxTEXT_MARKER_DATA *_pstNewData, const orxTEXT_MARKER_DATA *_pstFallbacks[])
 {
+  /* TODO: This function always has an associated call to CreateMarker. Perhaps this functionality should be integrated? */
   /* TODO: While debugging an assert in this function, it occurred to me that it would be easier to identify program state if I were passing orxTEXT_MARKERs instead of their contextless data. Consider doing that instead. There are few cases where data doesn't have a marker associated with it (e.g. parsing/validating the data before committing to a full marker allocation). */
   /* TODO: This function is sorta awkward - its return value is not always used, and does two related things that are individually too small for their own function */
   const orxTEXT_MARKER_DATA *pstResult;
