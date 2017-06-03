@@ -626,6 +626,10 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             orxASSERT(pstPoppedEntry != orxNULL);
             orxLinkList_Remove((orxLINKLIST_NODE *) pstPoppedEntry);
 
+            /* Sanity checks - Integrity of stDryRunStack must not be violated */
+            orxASSERT(pstPoppedEntry->pstData->eType != orxTEXT_MARKER_TYPE_NONE);
+            orxASSERT(pstPoppedEntry->pstData->eType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
+
             /* The fallback of the popped entry will serve as the data for a new marker */
             orxTEXT_MARKER_DATA stFallbackData;
             /* If that fallback data is null, it means we're reverting to a default value. */
