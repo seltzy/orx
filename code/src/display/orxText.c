@@ -632,7 +632,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
             /* The fallback of the popped entry will serve as the data for a new marker */
             orxTEXT_MARKER_DATA stFallbackData;
-            /* If that fallback data is null, it means we're reverting to a default value. */
+            /* If the fallback data of the popped entry is null, it means we're reverting to a default value. */
             if (pstPoppedEntry->pstFallbackData == orxNULL)
             {
               /* Default values are unknown to orxTEXT, so we put a placeholder marker that identifies its data type */
@@ -641,7 +641,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             }
             else
             {
-              /* Copy the data of the popped entry's fallback marker */
+              /* Copy the data of the popped entry's fallback marker data */
               stFallbackData = *(pstPoppedEntry->pstFallbackData);
             }
 
@@ -649,6 +649,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             orxBank_Free(pstDryRunStackBank, pstPoppedEntry);
 
             /* Update line height for this line */
+            /* TODO: compress line height updates */
             if (stFallbackData.eType == orxTEXT_MARKER_TYPE_FONT)
             {
               stCurrentFontData = stFallbackData;
