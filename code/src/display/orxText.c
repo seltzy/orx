@@ -233,7 +233,7 @@ static orxTEXT_MARKER *orxFASTCALL orxText_CreateMarker(orxBANK *_pstMarkerBank,
 /** Create and push a marker stack entry with the specified data / fallback data.
  * @return      orxTEXT_MARKER_NODE
  */
-static orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
+static const orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
 {
   orxASSERT(_pstStackBank != orxNULL);
   orxASSERT(_pstStack != orxNULL);
