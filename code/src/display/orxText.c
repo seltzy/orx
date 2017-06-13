@@ -1013,7 +1013,7 @@ static orxSTATUS orxFASTCALL orxText_EventHandler(const orxEVENT *_pstEvent)
  */
 static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 {
-    /* Checks */
+  /* Checks */
   orxSTRUCTURE_ASSERT(_pstText);
 
   /* Has string and font? */
