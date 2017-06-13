@@ -107,7 +107,7 @@ struct __orxTEXT_t
 {
   orxSTRUCTURE          stStructure;                /**< Public structure, first structure member : 32 */
   orxFONT              *pstFont;                    /**< Font : 20 */
-  const orxTEXT_MARKER *pstMarkers;
+  orxTEXT_MARKER       *pstMarkers;
   orxU32                u32MarkerCounter;
   const orxSTRING       zString;                    /**< String : 24 */
   orxFLOAT              fWidth;                     /**< Width : 28 */
@@ -515,9 +515,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxSTRING zCleanedString;
   orxU32 u32CleanedSize, u32CleanedSizeUsed;
 
-  orxTEXT_MARKER_DATA *pstLineHeightMarkerData;
-  orxTEXT_MARKER_DATA stCurrentFontData;
-
   /* Used for a dry run of marker traversal */
   orxBANK      *pstDryRunMarkerBank, *pstDryRunStackBank;
   orxLINKLIST   stDryRunStack;
@@ -554,18 +551,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
   orxMemory_Zero(&stDryRunStack, sizeof(orxLINKLIST));
 
-  /* Initialize line height marker vars */
+  /* Add first line height marker */
   {
-    stCurrentFontData.eType = orxTEXT_MARKER_TYPE_FONT;
-    stCurrentFontData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
-    stCurrentFontData.stFontData.pstFont = orxNULL;
-
     orxTEXT_MARKER_DATA stData;
     stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
-    stData.fLineHeight = stCurrentFontData.stFontData.pstMap->fCharacterHeight;
-
-    orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
-    pstLineHeightMarkerData = &(pstMarker->stData);
+    stData.fLineHeight = orxFLOAT_0;
+    orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
   }
 
   /* Parse the string using zMarkedString as a pointer to our current position in _zString */
@@ -577,15 +568,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       /* Newline or start of string? Add a line height marker. */
       if (*zMarkedString == orxCHAR_LF)
       {
-        /* Only add it if it differs from the previous line's height */
-        if (pstLineHeightMarkerData->fLineHeight != stCurrentFontData.stFontData.pstMap->fCharacterHeight)
-        {
-          orxTEXT_MARKER_DATA stData;
-          stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
-          stData.fLineHeight = stCurrentFontData.stFontData.pstMap->fCharacterHeight;
-          orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
-          pstLineHeightMarkerData = &(pstMarker->stData);
-        }
+        /* This marker will be updated in orxText_UpdateSize */
+        orxTEXT_MARKER_DATA stData;
+        stData.eType = orxTEXT_MARKER_TYPE_LINE_HEIGHT;
+        stData.fLineHeight = orxFLOAT_0;
+        orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
       }
 
       /* Non-marker text */
@@ -648,19 +635,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
 
             /* Delete the popped entry */
             orxBank_Free(pstDryRunStackBank, pstPoppedEntry);
-
-            /* Update line height for this line */
-            /* TODO: compress line height updates */
-            if (stFallbackData.eType == orxTEXT_MARKER_TYPE_FONT)
-            {
-              stCurrentFontData = stFallbackData;
-              pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
-            }
-            else if ((stFallbackData.eType == orxTEXT_MARKER_TYPE_REVERT) && (stFallbackData.eRevertType == orxTEXT_MARKER_TYPE_FONT))
-            {
-              stCurrentFontData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
-              pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
-            }
 
             /* Copy the fallback data into a new marker */
             const orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
@@ -735,11 +709,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             orxASSERT(pstFallbackData->eRevertType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
           }
 
-          /* Update line height for this line */
-          /* TODO: generalize this */
-          stCurrentFontData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
-          pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
-
           /* Continue parsing */
         }
         else
@@ -757,12 +726,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             /* Create marker */
             orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
             orxASSERT(pstMarker != orxNULL);
-            /* Update line height if it's a font */
-            if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_FONT)
-            {
-              stCurrentFontData = stData;
-              pstLineHeightMarkerData->fLineHeight = orxMAX(pstLineHeightMarkerData->fLineHeight, stCurrentFontData.stFontData.pstMap->fCharacterHeight);
-            }
             /* Get the data for this marker to fall back to */
             const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
             /* Push data to stack with fallback data */
@@ -804,7 +767,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       case orxTEXT_MARKER_TYPE_SCALE:
         break;
       case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-        orxASSERT(pstMarker->stData.fLineHeight > orxFLOAT_0);
+        orxASSERT(pstMarker->stData.fLineHeight == orxFLOAT_0);
         break;
       case orxTEXT_MARKER_TYPE_REVERT:
       {
@@ -1056,18 +1019,53 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   /* Has string and font? */
   if((_pstText->zString != orxNULL) && (_pstText->zString != orxSTRING_EMPTY) && (_pstText->pstFont != orxNULL))
   {
-    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight;
-    orxU32          u32CharacterCodePoint;
+    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight, fScaleY;
+    orxU32          u32CharacterCodePoint, u32CharacterIndex, u32MarkerIndex;
+    orxTEXT_MARKER *pstMarker, *pstLineMarker;
     const orxCHAR  *pc;
 
-    /* Gets character height */
-    fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
+    u32MarkerIndex = 0;
+    pstMarker = pstLineMarker = orxNULL;
 
     /* For all characters */
-    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), fHeight = fCharacterHeight, fWidth = fMaxWidth = orxFLOAT_0;
+    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = 0, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
+      u32CharacterIndex = (pc - _pstText->zString) - 1; /* Calculate char index */
+      /* Check for marker at index */
+      pstMarker = orxNULL;
+      if (u32MarkerIndex < orxText_GetMarkerCounter(_pstText))
+      {
+        if (_pstText->pstMarkers[u32MarkerIndex].u32Index >= u32CharacterIndex)
+        {
+          pstMarker = &_pstText->pstMarkers[u32MarkerIndex];
+          /* New line height marker? */
+          if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT)
+          {
+            pstLineMarker = pstMarker;
+          }
+        }
+      }
+      /* There is always at least one line height marker */
+      orxASSERT(pstLineMarker != orxNULL);
+      /* See if line height can be updated */
+      if (pstMarker != orxNULL)
+      {
+        orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
+        if (eType == orxTEXT_MARKER_TYPE_FONT || eType == orxTEXT_MARKER_TYPE_SCALE)
+        {
+          if (eType == orxTEXT_MARKER_TYPE_FONT)
+          {
+            fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
+          }
+          else if (orxTEXT_MARKER_TYPE_SCALE)
+          {
+            fScaleY = pstMarker->stData.vScale.fY;
+          }
+          pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fCharacterHeight * fScaleY);
+        }
+      }
       /* Depending on character */
       switch(u32CharacterCodePoint)
       {
@@ -1086,7 +1084,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
         case orxCHAR_LF:
         {
           /* Updates height */
-          fHeight += fCharacterHeight;
+          fHeight += pstLineMarker->stData.fLineHeight;
 
           /* Updates max width */
           fMaxWidth = orxMAX(fMaxWidth, fWidth);
@@ -1109,7 +1107,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
     /* Stores values */
     _pstText->fWidth  = orxMAX(fWidth, fMaxWidth);
-    _pstText->fHeight = fHeight;
+    _pstText->fHeight = fHeight + pstLineMarker->stData.fLineHeight;
   }
   else
   {
