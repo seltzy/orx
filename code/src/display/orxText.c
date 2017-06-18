@@ -1021,49 +1021,54 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   {
     orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight, fScaleY;
     orxU32          u32CharacterCodePoint, u32CharacterIndex, u32MarkerIndex;
-    orxTEXT_MARKER *pstMarker, *pstLineMarker;
+    orxTEXT_MARKER *pstLineMarker;
     const orxCHAR  *pc;
 
     u32MarkerIndex = 0;
-    pstMarker = pstLineMarker = orxNULL;
+    fScaleY = orxFLOAT_1;
+    fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
+    pstLineMarker = orxNULL;
 
+    /* So I hit another one of those points where I found a design flaw in my code, but it should be a fairly simple one. Basically one decision I made earlier on was that "default" markup values (i.e. what the text looks like with an empty marker stack) is up to the user (in this case the `TransformText()`). I do this by having a special marker type (revert) that signifies the need for the user to provide the styling. The problem with this is that it's conceptually incompatible with precalculating line height. I realized the other day that leaving that kind of thing up to the user isn't necessary since we already know what the orxTEXT default font is, and character scaling is a marker-only concept. Colors in orx are multiplicative so at the scope of text rendering, the default color will always be white. */
+
+    /* TODO: make sure we use vScale for char width! */
     /* For all characters */
     for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = 0, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
     {
       u32CharacterIndex = (pc - _pstText->zString) - 1; /* Calculate char index */
+      /* This is breaking because i dont account for multiple markers at the same index. */
       /* Check for marker at index */
-      pstMarker = orxNULL;
       if (u32MarkerIndex < orxText_GetMarkerCounter(_pstText))
       {
-        if (_pstText->pstMarkers[u32MarkerIndex].u32Index >= u32CharacterIndex)
+        while (_pstText->pstMarkers[u32MarkerIndex].u32Index == u32CharacterIndex)
         {
-          pstMarker = &_pstText->pstMarkers[u32MarkerIndex];
+          orxTEXT_MARKER *pstMarker = (_pstText->pstMarkers + u32MarkerIndex);
+          u32MarkerIndex++;
           /* New line height marker? */
           if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT)
           {
             pstLineMarker = pstMarker;
           }
-        }
-      }
-      /* There is always at least one line height marker */
-      orxASSERT(pstLineMarker != orxNULL);
-      /* See if line height can be updated */
-      if (pstMarker != orxNULL)
-      {
-        orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
-        if (eType == orxTEXT_MARKER_TYPE_FONT || eType == orxTEXT_MARKER_TYPE_SCALE)
-        {
-          if (eType == orxTEXT_MARKER_TYPE_FONT)
+          else
           {
-            fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
+            orxASSERT(pstMarker != orxNULL);
+            orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
+            if (eType == orxTEXT_MARKER_TYPE_FONT || eType == orxTEXT_MARKER_TYPE_SCALE)
+            {
+              if (eType == orxTEXT_MARKER_TYPE_FONT)
+              {
+                fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
+              }
+              else if (eType == orxTEXT_MARKER_TYPE_SCALE)
+              {
+                fScaleY = pstMarker->stData.vScale.fY;
+              }
+              orxASSERT(pstLineMarker != orxNULL);
+              pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fCharacterHeight * fScaleY);
+            }
           }
-          else if (orxTEXT_MARKER_TYPE_SCALE)
-          {
-            fScaleY = pstMarker->stData.vScale.fY;
-          }
-          pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fCharacterHeight * fScaleY);
         }
       }
       /* Depending on character */
