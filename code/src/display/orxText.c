@@ -1077,6 +1077,10 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* New line height marker? */
           if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT)
           {
+            if (pstLineMarker == orxNULL)
+            {
+              pstMarker->stData.fLineHeight = fScaleY * fCharacterHeight;
+            }
             pstLineMarker = pstMarker;
           }
           else
