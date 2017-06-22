@@ -741,6 +741,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxU32 u32MarkerCounter = orxBank_GetCounter(pstDryRunMarkerBank);
   if (u32MarkerCounter > 0)
   {
+    orxASSERT(orxText_GetFont(_pstText) != orxNULL);
+    orxFLOAT fCharacterHeight = orxFont_GetCharacterHeight(orxText_GetFont(_pstText));
+    orxASSERT(fCharacterHeight > orxFLOAT_0);
+    orxFLOAT fScaleY = orxFLOAT_1;
+    orxTEXT_MARKER *pstLineMarker = orxNULL;
     _pstText->pstMarkers = (orxTEXT_MARKER *) orxMemory_Allocate(sizeof(orxTEXT_MARKER) * u32MarkerCounter, orxMEMORY_TYPE_MAIN);
     orxASSERT(_pstText->pstMarkers != orxNULL);
     for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
@@ -751,64 +756,68 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstMarker != orxNULL);
       orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
       orxASSERT(pstMarker->stData.eType < orxTEXT_MARKER_TYPE_NUMBER);
-      switch (pstMarker->stData.eType)
+      /* Eliminate revert markers */
+      if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_REVERT)
       {
-        case orxTEXT_MARKER_TYPE_FONT:
-          orxASSERT(pstMarker->stData.stFontData.pstMap != orxNULL);
-          orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
-          orxASSERT(pstMarker->stData.stFontData.pstFont != orxNULL);
-          break;
-        case orxTEXT_MARKER_TYPE_COLOR:
-          break;
-        case orxTEXT_MARKER_TYPE_SCALE:
-          break;
-        case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-          orxASSERT(pstMarker->stData.fLineHeight == orxFLOAT_0);
-          break;
-        case orxTEXT_MARKER_TYPE_REVERT:
+        orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
+        orxASSERT(eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
+                  eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
+                  eRevertType == orxTEXT_MARKER_TYPE_SCALE);
+        switch (eRevertType)
         {
-          orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
-          orxASSERT(eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
-                    eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
-                    eRevertType == orxTEXT_MARKER_TYPE_SCALE);
-          switch (eRevertType)
+          case orxTEXT_MARKER_TYPE_FONT:
           {
-            case orxTEXT_MARKER_TYPE_FONT:
-            {
-              pstMarker->stData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
-              orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
-              pstMarker->stData.stFontData.pstFont = orxTexture_GetBitmap(orxFont_GetTexture(orxText_GetFont(_pstText)));
-              orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight == orxFont_GetCharacterHeight(orxText_GetFont(_pstText)));
-              break;
-            }
-            case orxTEXT_MARKER_TYPE_COLOR:
-            {
-              pstMarker->stData.stRGBA.u8R = 255;
-              pstMarker->stData.stRGBA.u8G = 255;
-              pstMarker->stData.stRGBA.u8B = 255;
-              pstMarker->stData.stRGBA.u8A = 255;
-              break;
-            }
-            case orxTEXT_MARKER_TYPE_SCALE:
-            {
-              pstMarker->stData.vScale.fX = orxFLOAT_1;
-              pstMarker->stData.vScale.fY = orxFLOAT_1;
-              pstMarker->stData.vScale.fZ = orxFLOAT_1;
-              break;
-            }
-            default:
-              orxASSERT(orxFALSE, "Invalid marker type");
+            pstMarker->stData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
+            pstMarker->stData.stFontData.pstFont = orxTexture_GetBitmap(orxFont_GetTexture(orxText_GetFont(_pstText)));
+            break;
           }
-          pstMarker->stData.eType = eRevertType;
-          break;
+          case orxTEXT_MARKER_TYPE_COLOR:
+          {
+            pstMarker->stData.stRGBA.u8R = 255;
+            pstMarker->stData.stRGBA.u8G = 255;
+            pstMarker->stData.stRGBA.u8B = 255;
+            pstMarker->stData.stRGBA.u8A = 255;
+            break;
+          }
+          case orxTEXT_MARKER_TYPE_SCALE:
+          {
+            pstMarker->stData.vScale.fX = orxFLOAT_1;
+            pstMarker->stData.vScale.fY = orxFLOAT_1;
+            pstMarker->stData.vScale.fZ = orxFLOAT_1;
+            break;
+          }
+          default:
+            orxASSERT(orxFALSE, "Invalid marker type");
         }
-        default:
-          orxASSERT(orxFALSE, "Invalid marker type");
+        pstMarker->stData.eType = eRevertType;
       }
       /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
       pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
       /* Checks */
       orxASSERT(pstMarker != orxNULL);
+      switch (pstMarker->stData.eType)
+      {
+      case orxTEXT_MARKER_TYPE_FONT:
+        orxASSERT(pstMarker->stData.stFontData.pstMap != orxNULL);
+        orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
+        orxASSERT(pstMarker->stData.stFontData.pstFont != orxNULL);
+        fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
+        pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
+        break;
+      case orxTEXT_MARKER_TYPE_COLOR:
+        break;
+      case orxTEXT_MARKER_TYPE_SCALE:
+        fScaleY = pstMarker->stData.vScale.fY;
+        pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
+        break;
+      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+        pstLineMarker = pstMarker;
+        pstLineMarker->stData.fLineHeight = fScaleY * fCharacterHeight;
+        orxASSERT(pstMarker->stData.fLineHeight > orxFLOAT_0);
+        break;
+      default:
+        orxASSERT(orxFALSE, "Invalid marker type");
+      }
     }
   }
   _pstText->u32MarkerCounter = u32MarkerCounter;
@@ -1048,7 +1057,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   /* Has string and font? */
   if((_pstText->zString != orxNULL) && (_pstText->zString != orxSTRING_EMPTY) && (_pstText->pstFont != orxNULL))
   {
-    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight, fScaleY;
+    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight;
     orxU32          u32CharacterCodePoint, u32CharacterIndex, u32MarkerIndex;
     orxTEXT_MARKER *pstLineMarker;
     const orxCHAR  *pc;
@@ -1056,8 +1065,6 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     /* It's expected that there will be at least one line height marker */
     orxASSERT(orxText_GetMarkerCounter(_pstText) > 0);
     u32MarkerIndex = 0;
-    fScaleY = orxFLOAT_1;
-    fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
     pstLineMarker = orxNULL;
 
     /* So I hit another one of those points where I found a design flaw in my code, but it should be a fairly simple one. Basically one decision I made earlier on was that "default" markup values (i.e. what the text looks like with an empty marker stack) is up to the user (in this case the `TransformText()`). I do this by having a special marker type (revert) that signifies the need for the user to provide the styling. The problem with this is that it's conceptually incompatible with precalculating line height. I realized the other day that leaving that kind of thing up to the user isn't necessary since we already know what the orxTEXT default font is, and character scaling is a marker-only concept. Colors in orx are multiplicative so at the scope of text rendering, the default color will always be white. */
@@ -1079,29 +1086,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           /* New line height marker? */
           if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT)
           {
-            if (pstLineMarker == orxNULL)
-            {
-              pstMarker->stData.fLineHeight = fScaleY * fCharacterHeight;
-            }
             pstLineMarker = pstMarker;
-          }
-          else
-          {
-            orxASSERT(pstMarker != orxNULL);
-            orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
-            if (eType == orxTEXT_MARKER_TYPE_FONT || eType == orxTEXT_MARKER_TYPE_SCALE)
-            {
-              if (eType == orxTEXT_MARKER_TYPE_FONT)
-              {
-                fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
-              }
-              else if (eType == orxTEXT_MARKER_TYPE_SCALE)
-              {
-                fScaleY = pstMarker->stData.vScale.fY;
-              }
-              orxASSERT(pstLineMarker != orxNULL);
-              pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fCharacterHeight * fScaleY);
-            }
           }
         }
       }
@@ -1653,4 +1638,3 @@ orxSTATUS orxFASTCALL orxText_SetFont(orxTEXT *_pstText, orxFONT *_pstFont)
   /* Done! */
   return eResult;
 }
-
