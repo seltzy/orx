@@ -1049,6 +1049,8 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     orxTEXT_MARKER *pstLineMarker;
     const orxCHAR  *pc;
 
+    /* It's expected that there will be at least one line height marker */
+    orxASSERT(orxText_GetMarkerCounter(_pstText) > 0);
     u32MarkerIndex = 0;
     fScaleY = orxFLOAT_1;
     fCharacterHeight = orxFont_GetCharacterHeight(_pstText->pstFont);
