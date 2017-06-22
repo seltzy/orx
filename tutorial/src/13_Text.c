@@ -74,27 +74,6 @@ void DebugText(const orxTEXT *_pstText)
     case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
       orxLOG("  Line Height = %u", stMarker.stData.fLineHeight);
       break;
-    case orxTEXT_MARKER_TYPE_REVERT:
-    {
-      const orxSTRING zType = "none";
-      switch(stMarker.stData.eRevertType)
-      {
-      case orxTEXT_MARKER_TYPE_FONT:
-        zType = "font";
-        break;
-      case orxTEXT_MARKER_TYPE_COLOR:
-        zType = "color";
-        break;
-      case orxTEXT_MARKER_TYPE_SCALE:
-        zType = "scale";
-        break;
-      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-        zType = "line height";
-        break;
-      }
-      orxLOG("  Revert = %s", zType);
-      break;
-    }
     default:
       orxLOG("  Invalid Type");
     }
