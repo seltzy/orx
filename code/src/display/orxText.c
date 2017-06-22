@@ -791,7 +791,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             }
             case orxTEXT_MARKER_TYPE_SCALE:
             {
-              orxVector_Copy(&pstMarker->stData.vScale, &orxVECTOR_1);
+              pstMarker->stData.vScale.fX = orxFLOAT_1;
+              pstMarker->stData.vScale.fY = orxFLOAT_1;
+              pstMarker->stData.vScale.fZ = orxFLOAT_1;
               break;
             }
             default:
