@@ -776,7 +776,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             case orxTEXT_MARKER_TYPE_FONT:
             {
               pstMarker->stData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
+              orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
               pstMarker->stData.stFontData.pstFont = orxTexture_GetBitmap(orxFont_GetTexture(orxText_GetFont(_pstText)));
+              orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight == orxFont_GetCharacterHeight(orxText_GetFont(_pstText)));
               break;
             }
             case orxTEXT_MARKER_TYPE_COLOR:
