@@ -1918,29 +1918,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
       case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
       {
         fLineHeight = pstMarker->stData.fLineHeight;
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_REVERT:
-      {
-        orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
-        switch (eRevertType)
-        {
-        case orxTEXT_MARKER_TYPE_FONT:
-          pstMarkerFontBitmap = _pstFont;
-          pstMarkerFontCharacterMap = _pstMap;
-          fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
-          /* Prepares font for drawing */
-          orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
-          break;
-        case orxTEXT_MARKER_TYPE_COLOR:
-          stMarkerBitmapColor = _pstFont->stColor;
-          break;
-        case orxTEXT_MARKER_TYPE_SCALE:
-          vMarkerGlyphScale = orxVECTOR_1;
-          break;
-        default:
-          orxASSERT(orxFALSE, "Impossible marker revert type!");
-        }
+        orxASSERT(fLineHeight > orxFLOAT_0);
         break;
       }
       default:
