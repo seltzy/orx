@@ -1062,9 +1062,8 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
     /* For all characters */
     for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = 0, fWidth = fMaxWidth = orxFLOAT_0;
         u32CharacterCodePoint != orxCHAR_NULL;
-        u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc))
+        u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc), u32CharacterIndex++)
     {
-      u32CharacterIndex = (pc - _pstText->zString) - 1; /* Calculate char index */
       /* This is breaking because i dont account for multiple markers at the same index. */
       /* Check for marker at index */
       if (u32MarkerIndex < orxText_GetMarkerCounter(_pstText))
