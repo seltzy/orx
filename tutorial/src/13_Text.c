@@ -63,7 +63,7 @@ void DebugText(const orxTEXT *_pstText)
     switch (stMarker.stData.eType)
     {
     case orxTEXT_MARKER_TYPE_FONT:
-      orxLOG("  Font = (%p, %p, %u)", stMarker.stData.stFontData.pstMap, stMarker.stData.stFontData.pstFont, stMarker.stData.stFontData.pstMap->fCharacterHeight);
+      orxLOG("  Font = (%p, %p, %f)", stMarker.stData.stFontData.pstMap, stMarker.stData.stFontData.pstFont, stMarker.stData.stFontData.pstMap->fCharacterHeight);
       break;
     case orxTEXT_MARKER_TYPE_COLOR:
       orxLOG("  Color = (%u, %u, %u)", stMarker.stData.stRGBA.u8R, stMarker.stData.stRGBA.u8G, stMarker.stData.stRGBA.u8B);
@@ -72,7 +72,7 @@ void DebugText(const orxTEXT *_pstText)
       orxLOG("  Scale = (%f, %f, %f)", stMarker.stData.vScale.fX, stMarker.stData.vScale.fY, stMarker.stData.vScale.fZ);
       break;
     case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-      orxLOG("  Line Height = %u", stMarker.stData.fLineHeight);
+      orxLOG("  Line Height = %f", stMarker.stData.fLineHeight);
       break;
     default:
       orxLOG("  Invalid Type");
