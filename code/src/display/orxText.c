@@ -417,6 +417,7 @@ static orxSTATUS orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, o
  */
 static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _zString, orxU32 _u32Offset, const orxSTRING *_pzRemainder)
 {
+/* TODO: Use the codepoint traversal functions */
   orxASSERT((_zString != orxNULL) && (_zString != orxSTRING_EMPTY));
   orxASSERT(_u32Offset != orxU32_UNDEFINED);
   orxASSERT(_pzRemainder != orxNULL);
@@ -510,6 +511,7 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
  */
 static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText, const orxSTRING _zString)
 {
+/* TODO: Use the codepoint traversal functions */
   const orxSTRING zMarkedString;
   const orxSTRING zResult;
   orxSTRING zCleanedString;
