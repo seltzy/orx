@@ -565,6 +565,11 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     /* Start of marker? */
     if (*zMarkedString != orxTEXT_KC_MARKER_SYNTAX_START)
     {
+      if (*zMarkedString == orxCHAR_CR)
+      {
+        zMarkedString++;
+        continue;
+      }
       /* Newline or start of string? Add a line height marker. */
       if (*zMarkedString == orxCHAR_LF)
       {
