@@ -761,6 +761,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxASSERT(pstStoreMarkerAt != orxNULL);
       orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
       orxASSERT(pstMarker != orxNULL);
+      pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
+      orxASSERT(pstMarker != orxNULL);
       orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
       orxASSERT(pstMarker->stData.eType < orxTEXT_MARKER_TYPE_NUMBER);
       /* Eliminate revert markers */
@@ -799,9 +801,6 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
         pstMarker->stData.eType = eRevertType;
       }
       /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
-      pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
-      /* Checks */
-      orxASSERT(pstMarker != orxNULL);
       switch (pstMarker->stData.eType)
       {
       case orxTEXT_MARKER_TYPE_FONT:
