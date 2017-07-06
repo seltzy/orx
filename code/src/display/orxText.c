@@ -334,76 +334,76 @@ static orxSTATUS orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, o
     /* Check style values - if something is invalid, fall through to default */
     switch(_pstData->eType)
     {
-    /* Attempt to store font style */
-    case orxTEXT_MARKER_TYPE_FONT:
-    {
-      orxCHAR cPrevValue = zValueString[u32ValueStringSize - 2];
-      /* Modify the value string to exclude surrounding chars */
-      zValueString[u32ValueStringSize - 2] = orxCHAR_NULL;
-      /* Try and get the font */
-      const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString + 1);
-      /* EDGE CASE: Handle invalid/missing font */
-      if (pstFont != orxNULL)
-      {
-        /* If everything checks out, store the font and continue */
-        _pstData->stFontData.pstMap = orxFont_GetMap(pstFont);
-        _pstData->stFontData.pstFont = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
-        break;
-      }
-      /* Reset value close char for error message */
-      zValueString[u32ValueStringSize - 2] = cPrevValue;
-      /* Fall through */
-    }
-    /* Attempt to store color style */
-    case orxTEXT_MARKER_TYPE_COLOR:
-    {
-      orxVECTOR vColor = {0};
-      /* EDGE CASE: Handle invalid/missing color */
-      /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
-      if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_SUCCESS)
-      {
-        orxVector_Mulf(&vColor, &vColor, orxCOLOR_NORMALIZER);
-        orxCOLOR stColor = {vColor, 1.0f};
-        _pstData->stRGBA = orxColor_ToRGBA(&stColor);
-        break;
-      }
-      /* Fall through */
-    }
-    /* Attempt to store scale style */
-    case orxTEXT_MARKER_TYPE_SCALE:
-    {
-      orxVECTOR vScale = {0};
-      /* EDGE CASE: Handle invalid/missing scale */
-      if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_SUCCESS)
-      {
-        orxVector_Copy(&(_pstData->vScale), &vScale);
-        break;
-      }
-      /* Fall through */
-    }
-    /* Handle invalid values/types */
-    default:
-    {
-      /* Get type name */
-      const orxSTRING zTypeName;
-      switch(_pstData->eType)
-      {
+      /* Attempt to store font style */
       case orxTEXT_MARKER_TYPE_FONT:
-        zTypeName = orxTEXT_KZ_MARKER_TYPE_FONT;
-        break;
-      case orxTEXT_MARKER_TYPE_COLOR:
-        zTypeName = orxTEXT_KZ_MARKER_TYPE_COLOR;
-        break;
-      case orxTEXT_MARKER_TYPE_SCALE:
-        zTypeName = orxTEXT_KZ_MARKER_TYPE_SCALE;
-        break;
-      default:
-        zTypeName = "none";
+      {
+        orxCHAR cPrevValue = zValueString[u32ValueStringSize - 2];
+        /* Modify the value string to exclude surrounding chars */
+        zValueString[u32ValueStringSize - 2] = orxCHAR_NULL;
+        /* Try and get the font */
+        const orxFONT *pstFont = orxFont_CreateFromConfig(zValueString + 1);
+        /* EDGE CASE: Handle invalid/missing font */
+        if (pstFont != orxNULL)
+        {
+          /* If everything checks out, store the font and continue */
+          _pstData->stFontData.pstMap = orxFont_GetMap(pstFont);
+          _pstData->stFontData.pstFont = orxTexture_GetBitmap(orxFont_GetTexture(pstFont));
+          break;
+        }
+        /* Reset value close char for error message */
+        zValueString[u32ValueStringSize - 2] = cPrevValue;
+        /* Fall through */
       }
-      /* Log warning */
-      orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeName, zValueString, _zString);
-      eResult = orxSTATUS_FAILURE;
-    }
+      /* Attempt to store color style */
+      case orxTEXT_MARKER_TYPE_COLOR:
+      {
+        orxVECTOR vColor = {0};
+        /* EDGE CASE: Handle invalid/missing color */
+        /* TODO: We may want to use _pzRemaining for parsing an alpha value, if we choose to add it that way */
+        if (orxString_ToVector(zValueString, &vColor, orxNULL) == orxSTATUS_SUCCESS)
+        {
+          orxVector_Mulf(&vColor, &vColor, orxCOLOR_NORMALIZER);
+          orxCOLOR stColor = {vColor, 1.0f};
+          _pstData->stRGBA = orxColor_ToRGBA(&stColor);
+          break;
+        }
+        /* Fall through */
+      }
+      /* Attempt to store scale style */
+      case orxTEXT_MARKER_TYPE_SCALE:
+      {
+        orxVECTOR vScale = {0};
+        /* EDGE CASE: Handle invalid/missing scale */
+        if (orxString_ToVector(zValueString, &vScale, orxNULL) == orxSTATUS_SUCCESS)
+        {
+          orxVector_Copy(&(_pstData->vScale), &vScale);
+          break;
+        }
+        /* Fall through */
+      }
+      /* Handle invalid values/types */
+      default:
+      {
+        /* Get type name */
+        const orxSTRING zTypeName;
+        switch(_pstData->eType)
+        {
+        case orxTEXT_MARKER_TYPE_FONT:
+          zTypeName = orxTEXT_KZ_MARKER_TYPE_FONT;
+          break;
+        case orxTEXT_MARKER_TYPE_COLOR:
+          zTypeName = orxTEXT_KZ_MARKER_TYPE_COLOR;
+          break;
+        case orxTEXT_MARKER_TYPE_SCALE:
+          zTypeName = orxTEXT_KZ_MARKER_TYPE_SCALE;
+          break;
+        default:
+          zTypeName = "none";
+        }
+        /* Log warning */
+        orxDEBUG_PRINT(orxDEBUG_LEVEL_DISPLAY, orxTEXT_KZ_MARKER_WARNING, orxTEXT_KC_MARKER_SYNTAX_START, zTypeName, zValueString, _zString);
+        eResult = orxSTATUS_FAILURE;
+      }
     }
   }
   return eResult;
