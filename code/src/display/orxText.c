@@ -521,7 +521,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxBANK      *pstDryRunMarkerBank, *pstDryRunStackBank;
   orxLINKLIST   stDryRunStack;
   /* Used for keeping track of marker type fallbacks when manipulating the stack */
-  const orxTEXT_MARKER_DATA *ppstFallbacks[orxTEXT_MARKER_TYPE_NUMBER_REVERT] = { orxNULL };
+  const orxTEXT_MARKER_DATA *apstFallbacks[orxTEXT_MARKER_TYPE_NUMBER_REVERT] = { orxNULL };
 
   /* If string is invalid, return it. */
   if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
@@ -646,7 +646,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             /* Copy the fallback data into a new marker */
             const orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
             /* Update the processor fallback data to be the newly added marker's data */
-            orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
+            orxText_UpdateMarkerFallback(&pstMarker->stData, apstFallbacks);
           }
 
           /* Continue parsing */
@@ -664,7 +664,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           */
           for (orxU32 u32FallbackType = 0; u32FallbackType < orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
           {
-            ppstFallbacks[u32FallbackType] = orxNULL;
+            apstFallbacks[u32FallbackType] = orxNULL;
           }
           /* We can't pop the stack if it's already empty */
           while (orxLinkList_GetCounter(&stDryRunStack) > 0)
@@ -679,7 +679,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             orxASSERT(pstPoppedEntry->pstData->eType < orxTEXT_MARKER_TYPE_NUMBER_REVERT);
 
             /* Only add revert markers once per type */
-            if (ppstFallbacks[pstPoppedEntry->pstData->eType] != orxNULL)
+            if (apstFallbacks[pstPoppedEntry->pstData->eType] != orxNULL)
             {
               continue;
             }
@@ -695,7 +695,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             /* Copy the fallback data into a new marker */
             const orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stFallbackData);
             /* Update the processor fallback data to be the newly added marker's data */
-            orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
+            orxText_UpdateMarkerFallback(&pstMarker->stData, apstFallbacks);
           }
 
           /* Clear stack storage */
@@ -705,7 +705,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           /* Fallback checks */
           for (orxU32 u32FallbackType = 0; u32FallbackType < orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
           {
-            const orxTEXT_MARKER_DATA *pstFallbackData = ppstFallbacks[u32FallbackType];
+            const orxTEXT_MARKER_DATA *pstFallbackData = apstFallbacks[u32FallbackType];
             /* orxNULL is an acceptable value for fallback data - it simply means a marker of that type has not previously existed */
             if (pstFallbackData == orxNULL)
             {
@@ -734,7 +734,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
             orxTEXT_MARKER *pstMarker = orxText_CreateMarker(pstDryRunMarkerBank, u32CleanedSizeUsed, &stData);
             orxASSERT(pstMarker != orxNULL);
             /* Get the data for this marker to fall back to */
-            const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&pstMarker->stData, ppstFallbacks);
+            const orxTEXT_MARKER_DATA *pstFallbackData = orxText_UpdateMarkerFallback(&pstMarker->stData, apstFallbacks);
             /* Push data to stack with fallback data */
             const orxTEXT_MARKER_NODE *pstStackEntry = orxText_AddMarkerStackEntry(&stDryRunStack, pstDryRunStackBank, &pstMarker->stData, pstFallbackData);
           }
