@@ -532,7 +532,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   /* Clear marker array memory */
   if (_pstText->pstMarkers != orxNULL)
   {
-    orxMemory_Set((void *)_pstText->pstMarkers, 0, sizeof(orxTEXT_MARKER) * orxText_GetMarkerCounter(_pstText));
+    orxMemory_Free((void *)_pstText->pstMarkers);
+    _pstText->pstMarkers = orxNULL;
   }
 
   /* Initialize string traversal/storage variables */
