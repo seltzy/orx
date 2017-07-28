@@ -518,6 +518,9 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   orxSTRING zCleanedString;
   orxU32 u32CleanedSize, u32CleanedSizeUsed;
 
+/* TODO: Fallback and Revert are used for essentially the same thing - pick one */
+/* TODO: Remove the entire concept of Revert markers */
+/* TODO: Reorder marker type logics so that color comes first - reorder the enum as well. */
   /* Used for a dry run of marker traversal */
   orxBANK      *pstDryRunMarkerBank, *pstDryRunStackBank;
   orxLINKLIST   stDryRunStack;
