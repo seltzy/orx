@@ -525,10 +525,13 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   const orxTEXT_MARKER_DATA *apstFallbacks[orxTEXT_MARKER_TYPE_NUMBER_REVERT] = { orxNULL };
 
   /* If string is invalid, return it. */
-  if (_zString == orxNULL || _zString == orxSTRING_EMPTY)
+  if (_zString == orxNULL || *_zString == orxCHAR_NULL)
   {
     return _zString;
   }
+
+  /* Initialize result to empty string */
+  zResult = orxSTRING_EMPTY;
 
   /* Clear marker array memory */
   if (_pstText->pstMarkers != orxNULL)
