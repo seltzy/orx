@@ -845,7 +845,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   }
 
   /* Has new string? */
-  if((zCleanedString != orxNULL) && (zCleanedString != orxSTRING_EMPTY))
+  if((zCleanedString != orxNULL) && (*zCleanedString != orxCHAR_NULL))
   {
     /* Stores a duplicate */
     zResult = orxString_Store(zCleanedString);
