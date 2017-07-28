@@ -849,6 +849,15 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
     _pstText->u32MarkerCounter = u32MarkerCounter;
   }
+  else
+  {
+    if (_pstText->pstMarkers != orxNULL)
+    {
+      orxMemory_Free(_pstText->pstMarkers);
+    }
+    _pstText->u32MarkerCounter = 0;
+    _pstText->pstMarkers = orxNULL;
+  }
 
   /* Free the dry run banks */
   orxBank_Delete(pstDryRunMarkerBank);
