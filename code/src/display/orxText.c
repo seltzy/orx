@@ -749,36 +749,52 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     }
   }
 
-  /* Move markers to array. */
-  orxU32 u32MarkerCounter = orxBank_GetCounter(pstDryRunMarkerBank);
-  if (u32MarkerCounter > 0)
+  /* TODO: There's probably a better way to represent this edge case */
+  if (*(zCleanedString + u32CleanedSizeUsed) != orxCHAR_NULL)
   {
-    orxASSERT(orxText_GetFont(_pstText) != orxNULL);
-    orxFLOAT fCharacterHeight = orxFont_GetCharacterHeight(orxText_GetFont(_pstText));
-    orxASSERT(fCharacterHeight > orxFLOAT_0);
-    orxFLOAT fScaleY = orxFLOAT_1;
-    orxTEXT_MARKER *pstLineMarker = orxNULL;
-    _pstText->pstMarkers = (orxTEXT_MARKER *) orxMemory_Allocate(sizeof(orxTEXT_MARKER) * u32MarkerCounter, orxMEMORY_TYPE_MAIN);
-    orxASSERT(_pstText->pstMarkers != orxNULL);
-    for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
+    /* Terminate cleaned string - just to be safe */
+    zCleanedString[u32CleanedSizeUsed - 1] = orxCHAR_NULL;
+  }
+
+  /* Has new string? */
+  if((zCleanedString != orxNULL) && (*zCleanedString != orxCHAR_NULL))
+  {
+    /* Stores a duplicate */
+    zResult = orxString_Store(zCleanedString);
+
+    /* Since the string is now stored internally, we can safely free it of its mortal coil */
+    orxMemory_Free(zCleanedString);
+
+    /* Move markers to array. */
+    orxU32 u32MarkerCounter = orxBank_GetCounter(pstDryRunMarkerBank);
+    if (u32MarkerCounter > 0)
     {
-      const orxTEXT_MARKER *pstStoreMarkerAt = _pstText->pstMarkers + u32Index;
-      orxASSERT(pstStoreMarkerAt != orxNULL);
-      orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
-      orxASSERT(pstMarker != orxNULL);
-      pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
-      orxASSERT(pstMarker != orxNULL);
-      orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
-      orxASSERT(pstMarker->stData.eType < orxTEXT_MARKER_TYPE_NUMBER);
-      /* Eliminate revert markers */
-      if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_REVERT)
+      orxASSERT(orxText_GetFont(_pstText) != orxNULL);
+      orxFLOAT fCharacterHeight = orxFont_GetCharacterHeight(orxText_GetFont(_pstText));
+      orxASSERT(fCharacterHeight > orxFLOAT_0);
+      orxFLOAT fScaleY = orxFLOAT_1;
+      orxTEXT_MARKER *pstLineMarker = orxNULL;
+      _pstText->pstMarkers = (orxTEXT_MARKER *) orxMemory_Allocate(sizeof(orxTEXT_MARKER) * u32MarkerCounter, orxMEMORY_TYPE_MAIN);
+      orxASSERT(_pstText->pstMarkers != orxNULL);
+      for (orxU32 u32Index = 0; u32Index < u32MarkerCounter; u32Index++)
       {
-        orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
-        orxASSERT(eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
-                  eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
-                  eRevertType == orxTEXT_MARKER_TYPE_SCALE);
-        switch (eRevertType)
+        const orxTEXT_MARKER *pstStoreMarkerAt = _pstText->pstMarkers + u32Index;
+        orxASSERT(pstStoreMarkerAt != orxNULL);
+        orxTEXT_MARKER *pstMarker = (orxTEXT_MARKER *) orxBank_GetAtIndex(pstDryRunMarkerBank, u32Index);
+        orxASSERT(pstMarker != orxNULL);
+        pstMarker = (orxTEXT_MARKER *) orxMemory_Copy((void *)pstStoreMarkerAt, (void *)pstMarker, sizeof(orxTEXT_MARKER));
+        orxASSERT(pstMarker != orxNULL);
+        orxASSERT(pstMarker->stData.eType != orxTEXT_MARKER_TYPE_NONE);
+        orxASSERT(pstMarker->stData.eType < orxTEXT_MARKER_TYPE_NUMBER);
+        /* Eliminate revert markers */
+        if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_REVERT)
         {
+          orxTEXT_MARKER_TYPE eRevertType = pstMarker->stData.eRevertType;
+          orxASSERT(eRevertType == orxTEXT_MARKER_TYPE_FONT  ||
+                    eRevertType == orxTEXT_MARKER_TYPE_COLOR ||
+                    eRevertType == orxTEXT_MARKER_TYPE_SCALE);
+          switch (eRevertType)
+          {
           case orxTEXT_MARKER_TYPE_FONT:
           {
             pstMarker->stData.stFontData.pstMap = orxFont_GetMap(orxText_GetFont(_pstText));
@@ -802,57 +818,41 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
           }
           default:
             orxASSERT(orxFALSE, "Invalid marker type");
+          }
+          pstMarker->stData.eType = eRevertType;
         }
-        pstMarker->stData.eType = eRevertType;
-      }
-      /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
-      switch (pstMarker->stData.eType)
-      {
-      case orxTEXT_MARKER_TYPE_FONT:
-        orxASSERT(pstMarker->stData.stFontData.pstMap != orxNULL);
-        orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
-        orxASSERT(pstMarker->stData.stFontData.pstFont != orxNULL);
-        fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
-        pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
-        break;
-      case orxTEXT_MARKER_TYPE_COLOR:
-        break;
-      case orxTEXT_MARKER_TYPE_SCALE:
-        fScaleY = pstMarker->stData.vScale.fY;
-        pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
-        break;
-      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-        pstLineMarker = pstMarker;
-        pstLineMarker->stData.fLineHeight = fScaleY * fCharacterHeight;
-        orxASSERT(pstMarker->stData.fLineHeight > orxFLOAT_0);
-        break;
-      default:
-        orxASSERT(orxFALSE, "Invalid marker type");
+        /* TODO: Overwrite redundant markers (i.e. multiple markers of the same type at the same index) as we go. */
+        switch (pstMarker->stData.eType)
+        {
+        case orxTEXT_MARKER_TYPE_FONT:
+          orxASSERT(pstMarker->stData.stFontData.pstMap != orxNULL);
+          orxASSERT(pstMarker->stData.stFontData.pstMap->fCharacterHeight > orxFLOAT_0);
+          orxASSERT(pstMarker->stData.stFontData.pstFont != orxNULL);
+          fCharacterHeight = pstMarker->stData.stFontData.pstMap->fCharacterHeight;
+          pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
+          break;
+        case orxTEXT_MARKER_TYPE_COLOR:
+          break;
+        case orxTEXT_MARKER_TYPE_SCALE:
+          fScaleY = pstMarker->stData.vScale.fY;
+          pstLineMarker->stData.fLineHeight = orxMAX(pstLineMarker->stData.fLineHeight, fScaleY * fCharacterHeight);
+          break;
+        case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+          pstLineMarker = pstMarker;
+          pstLineMarker->stData.fLineHeight = fScaleY * fCharacterHeight;
+          orxASSERT(pstMarker->stData.fLineHeight > orxFLOAT_0);
+          break;
+        default:
+          orxASSERT(orxFALSE, "Invalid marker type");
+        }
       }
     }
+    _pstText->u32MarkerCounter = u32MarkerCounter;
   }
-  _pstText->u32MarkerCounter = u32MarkerCounter;
 
   /* Free the dry run banks */
   orxBank_Delete(pstDryRunMarkerBank);
   orxBank_Delete(pstDryRunStackBank);
-
-  /* TODO: There's probably a better way to represent this edge case */
-  if (*(zCleanedString + u32CleanedSizeUsed) != orxCHAR_NULL)
-  {
-    /* Terminate cleaned string - just to be safe */
-    zCleanedString[u32CleanedSizeUsed - 1] = orxCHAR_NULL;
-  }
-
-  /* Has new string? */
-  if((zCleanedString != orxNULL) && (*zCleanedString != orxCHAR_NULL))
-  {
-    /* Stores a duplicate */
-    zResult = orxString_Store(zCleanedString);
-
-    /* Since the string is now stored internally, we can safely free it of its mortal coil */
-    orxMemory_Free(zCleanedString);
-  }
 
   /* Done! */
   return zResult;
