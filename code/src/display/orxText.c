@@ -194,7 +194,8 @@ static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckType
   *_pzRemainder = _zMarkerText;
   /* See _zCheckTypeName matches the start of _zMarkerText */
   orxU32 u32TypeLength = orxString_GetLength(_zCheckTypeName);
-  if (orxString_NCompare(_zMarkerText, _zCheckTypeName, u32TypeLength) == 0) {
+  if (orxString_NCompare(_zMarkerText, _zCheckTypeName, u32TypeLength) == 0)
+  {
     /* Update the next token to be the end of the type name in _zMarkerText */
     *_pzRemainder = (_zMarkerText + u32TypeLength);
     eResult = orxSTATUS_SUCCESS;
