@@ -670,6 +670,7 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
              by end of loop, all data in fallback array should point to revert marker or null
              clear stack
           */
+          /* Clear fallbacks array to make room for revert markers */
           for (orxU32 u32FallbackType = 0; u32FallbackType < orxTEXT_MARKER_TYPE_NUMBER_REVERT; u32FallbackType++)
           {
             apstFallbacks[u32FallbackType] = orxNULL;
