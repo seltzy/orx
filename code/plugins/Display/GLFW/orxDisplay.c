@@ -1907,7 +1907,12 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
       }
       case orxTEXT_MARKER_TYPE_COLOR:
       {
-        stMarkerBitmapColor = pstMarker->stData.stRGBA;
+        orxRGBA stFontColor = _pstFont->stColor;
+        orxRGBA stMarkerColor = pstMarker->stData.stRGBA;
+        stMarkerBitmapColor.u8R = (stFontColor.u8R * stMarkerColor.u8R) / 255;
+        stMarkerBitmapColor.u8G = (stFontColor.u8G * stMarkerColor.u8G) / 255;
+        stMarkerBitmapColor.u8B = (stFontColor.u8B * stMarkerColor.u8B) / 255;
+        stMarkerBitmapColor.u8A = (stFontColor.u8A * stMarkerColor.u8A) / 255;
         break;
       }
       case orxTEXT_MARKER_TYPE_SCALE:
