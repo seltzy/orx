@@ -533,8 +533,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
     return _zString;
   }
 
-  /* Initialize result to empty string */
-  zResult = orxSTRING_EMPTY;
+  /* Initialize result to orxNULL */
+  zResult = orxNULL;
 
   /* Clear marker array memory */
   if (_pstText->pstMarkers != orxNULL)
@@ -861,6 +861,8 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
       orxMemory_Free(_pstText->pstMarkers);
     }
     _pstText->pstMarkers = orxNULL;
+    /* Result is empty */
+    zResult = orxSTRING_EMPTY;
   }
 
   /* Free the dry run banks */
