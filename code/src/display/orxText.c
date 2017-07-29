@@ -854,11 +854,12 @@ static const orxSTRING orxFASTCALL orxText_ProcessMarkedString(orxTEXT *_pstText
   }
   else
   {
+    /* Clear markers just to be safe */
+    _pstText->u32MarkerCounter = 0;
     if (_pstText->pstMarkers != orxNULL)
     {
       orxMemory_Free(_pstText->pstMarkers);
     }
-    _pstText->u32MarkerCounter = 0;
     _pstText->pstMarkers = orxNULL;
   }
 
