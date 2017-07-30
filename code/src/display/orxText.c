@@ -302,10 +302,10 @@ static orxSTATUS orxFASTCALL orxText_ParseMarkerValue(const orxTEXT *_pstText, o
   const orxSTRING zValueStart;
   orxS32 s32EndIndex;
 
+  eResult = orxSTATUS_SUCCESS;
+
   zValueStart = _zString + _u32Offset;
   orxASSERT((zValueStart != orxNULL) && (zValueStart != orxSTRING_EMPTY) && (*zValueStart == orxTEXT_KC_MARKER_SYNTAX_OPEN));
-
-  eResult = orxSTATUS_SUCCESS;
 
   /* Figure out where the value ends */
   s32EndIndex = orxString_SearchCharIndex(zValueStart, orxTEXT_KC_MARKER_SYNTAX_CLOSE, 1);
