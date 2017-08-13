@@ -1077,7 +1077,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
   /* Has string and font? */
   if((_pstText->zString != orxNULL) && (_pstText->zString != orxSTRING_EMPTY) && (_pstText->pstFont != orxNULL))
   {
-    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight;
+    orxFLOAT        fWidth, fMaxWidth, fHeight, fCharacterHeight, fScaleX;
     orxU32          u32CharacterCodePoint, u32CharacterIndex, u32MarkerIndex;
     orxTEXT_MARKER *pstLineMarker;
     const orxCHAR  *pc;
@@ -1089,9 +1089,8 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
 
     /* So I hit another one of those points where I found a design flaw in my code, but it should be a fairly simple one. Basically one decision I made earlier on was that "default" markup values (i.e. what the text looks like with an empty marker stack) is up to the user (in this case the `TransformText()`). I do this by having a special marker type (revert) that signifies the need for the user to provide the styling. The problem with this is that it's conceptually incompatible with precalculating line height. I realized the other day that leaving that kind of thing up to the user isn't necessary since we already know what the orxTEXT default font is, and character scaling is a marker-only concept. Colors in orx are multiplicative so at the scope of text rendering, the default color will always be white. */
 
-    /* TODO: make sure we use vScale for char width! */
     /* For all characters */
-    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = 0, fWidth = fMaxWidth = orxFLOAT_0;
+    for(u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(_pstText->zString, &pc), u32CharacterIndex = 0, fHeight = 0, fWidth = fMaxWidth = orxFLOAT_0, fScaleX = orxFLOAT_1;
         u32CharacterCodePoint != orxCHAR_NULL;
         u32CharacterCodePoint = orxString_GetFirstCharacterCodePoint(pc, &pc), u32CharacterIndex++)
     {
@@ -1107,6 +1106,10 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
           if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_LINE_HEIGHT)
           {
             pstLineMarker = pstMarker;
+          }
+          else if (pstMarker->stData.eType == orxTEXT_MARKER_TYPE_SCALE)
+          {
+            fScaleX = pstMarker->stData.vScale.fX;
           }
         }
       }
@@ -1142,7 +1145,7 @@ static void orxFASTCALL orxText_UpdateSize(orxTEXT *_pstText)
         default:
         {
           /* Updates width */
-          fWidth += orxFont_GetCharacterWidth(_pstText->pstFont, u32CharacterCodePoint);
+          fWidth += orxFont_GetCharacterWidth(_pstText->pstFont, u32CharacterCodePoint) * fScaleX;
 
           break;
         }
