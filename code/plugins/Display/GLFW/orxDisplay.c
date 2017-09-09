@@ -1896,39 +1896,39 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
       orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
       switch (eType)
       {
-      case orxTEXT_MARKER_TYPE_FONT:
-      {
-        pstMarkerFontBitmap = pstMarker->stData.stFontData.pstFont;
-        pstMarkerFontCharacterMap = pstMarker->stData.stFontData.pstMap;
-        fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
-        /* Prepares font for drawing */
-        orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_COLOR:
-      {
-        /* Multiply with bitmap color */
-        orxRGBA stBitmapColor = _pstFont->stColor;
-        orxRGBA stMarkerColor = pstMarker->stData.stRGBA;
-        stMarkerBitmapColor.u8R = (stBitmapColor.u8R * stMarkerColor.u8R) / 255;
-        stMarkerBitmapColor.u8G = (stBitmapColor.u8G * stMarkerColor.u8G) / 255;
-        stMarkerBitmapColor.u8B = (stBitmapColor.u8B * stMarkerColor.u8B) / 255;
-        stMarkerBitmapColor.u8A = (stBitmapColor.u8A * stMarkerColor.u8A) / 255;
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_SCALE:
-      {
-        vMarkerGlyphScale = pstMarker->stData.vScale;
-        break;
-      }
-      case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
-      {
-        fLineHeight = pstMarker->stData.fLineHeight;
-        orxASSERT(fLineHeight > orxFLOAT_0);
-        break;
-      }
-      default:
-        orxASSERT(orxFALSE, "Impossible marker type!");
+        case orxTEXT_MARKER_TYPE_FONT:
+        {
+          pstMarkerFontBitmap = pstMarker->stData.stFontData.pstFont;
+          pstMarkerFontCharacterMap = pstMarker->stData.stFontData.pstMap;
+          fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
+          /* Prepares font for drawing */
+          orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
+          break;
+        }
+        case orxTEXT_MARKER_TYPE_COLOR:
+        {
+          /* Multiply with bitmap color */
+          orxRGBA stBitmapColor = _pstFont->stColor;
+          orxRGBA stMarkerColor = pstMarker->stData.stRGBA;
+          stMarkerBitmapColor.u8R = (stBitmapColor.u8R * stMarkerColor.u8R) / 255;
+          stMarkerBitmapColor.u8G = (stBitmapColor.u8G * stMarkerColor.u8G) / 255;
+          stMarkerBitmapColor.u8B = (stBitmapColor.u8B * stMarkerColor.u8B) / 255;
+          stMarkerBitmapColor.u8A = (stBitmapColor.u8A * stMarkerColor.u8A) / 255;
+          break;
+        }
+        case orxTEXT_MARKER_TYPE_SCALE:
+        {
+          vMarkerGlyphScale = pstMarker->stData.vScale;
+          break;
+        }
+        case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
+        {
+          fLineHeight = pstMarker->stData.fLineHeight;
+          orxASSERT(fLineHeight > orxFLOAT_0);
+          break;
+        }
+        default:
+          orxASSERT(orxFALSE, "Impossible marker type!");
       }
     }
     /* Depending on character */
