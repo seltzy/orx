@@ -1962,14 +1962,14 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
       {
         const orxCHARACTER_GLYPH *pstGlyph;
         orxFLOAT                  fWidth;
-        orxFLOAT                  fGlyphRenderWidth, fGlyphRenderHeight;
+        orxFLOAT                  fGlyphScaledWidth, fGlyphScaledHeight;
 
         /* Gets glyph from UTF-8 table */
         pstGlyph = (orxCHARACTER_GLYPH *)orxHashTable_Get(pstMarkerFontCharacterMap->pstCharacterTable, u32CharacterCodePoint);
         /* Gets character render height */
-        fGlyphRenderHeight = fHeight * vMarkerGlyphScale.fY;
+        fGlyphScaledHeight = fHeight * vMarkerGlyphScale.fY;
         /* Calculate height offset the scale Z positions the glyph with respect to the line height. 0.5 would center the glyph's center in line height. 1 would put it at the bottom. 0 would put it at the top. */
-        orxFLOAT fHeightOffset = (fLineHeight - fGlyphRenderHeight) * (vMarkerGlyphScale.fZ);
+        orxFLOAT fHeightOffset = (fLineHeight - fGlyphScaledHeight) * (vMarkerGlyphScale.fZ);
 
         /* Valid? */
         if(pstGlyph != orxNULL)
@@ -1977,7 +1977,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
           /* Gets character width */
           fWidth = pstGlyph->fWidth;
           /* Gets character render width */
-          fGlyphRenderWidth = fWidth * vMarkerGlyphScale.fX;
+          fGlyphScaledWidth = fWidth * vMarkerGlyphScale.fX;
 
           /* End of buffer? */
           if(sstDisplay.s32BufferIndex > orxDISPLAY_KU32_VERTEX_BUFFER_SIZE - 5)
@@ -1987,14 +1987,14 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
           }
 
           /* Outputs vertices and texture coordinates */
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fX      = (mTransform.vX.fX * fX) + (mTransform.vX.fY * (fY + fGlyphRenderHeight + fHeightOffset)) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fY      = (mTransform.vY.fX * fX) + (mTransform.vY.fY * (fY + fGlyphRenderHeight + fHeightOffset)) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fX      = (mTransform.vX.fX * fX) + (mTransform.vX.fY * (fY + fGlyphScaledHeight + fHeightOffset)) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fY      = (mTransform.vY.fX * fX) + (mTransform.vY.fY * (fY + fGlyphScaledHeight + fHeightOffset)) + mTransform.vY.fZ;
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fX  = (mTransform.vX.fX * fX) + (mTransform.vX.fY * (fY + fHeightOffset)) + mTransform.vX.fZ;
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fY  = (mTransform.vY.fX * fX) + (mTransform.vY.fY * (fY + fHeightOffset)) + mTransform.vY.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fX  = (mTransform.vX.fX * (fX + fGlyphRenderWidth)) + (mTransform.vX.fY * (fY + fGlyphRenderHeight + fHeightOffset)) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fY  = (mTransform.vY.fX * (fX + fGlyphRenderWidth)) + (mTransform.vY.fY * (fY + fGlyphRenderHeight + fHeightOffset)) + mTransform.vY.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fX  = (mTransform.vX.fX * (fX + fGlyphRenderWidth)) + (mTransform.vX.fY * (fY + fHeightOffset)) + mTransform.vX.fZ;
-          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fY  = (mTransform.vY.fX * (fX + fGlyphRenderWidth)) + (mTransform.vY.fY * (fY + fHeightOffset)) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fX  = (mTransform.vX.fX * (fX + fGlyphScaledWidth)) + (mTransform.vX.fY * (fY + fGlyphScaledHeight + fHeightOffset)) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 2].fY  = (mTransform.vY.fX * (fX + fGlyphScaledWidth)) + (mTransform.vY.fY * (fY + fGlyphScaledHeight + fHeightOffset)) + mTransform.vY.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fX  = (mTransform.vX.fX * (fX + fGlyphScaledWidth)) + (mTransform.vX.fY * (fY + fHeightOffset)) + mTransform.vX.fZ;
+          sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 3].fY  = (mTransform.vY.fX * (fX + fGlyphScaledWidth)) + (mTransform.vY.fY * (fY + fHeightOffset)) + mTransform.vY.fZ;
 
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex].fU      =
           sstDisplay.astVertexList[sstDisplay.s32BufferIndex + 1].fU  = (GLfloat)(pstMarkerFontBitmap->fRecRealWidth * (pstGlyph->fX + orxDISPLAY_KF_BORDER_FIX));
@@ -2021,7 +2021,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
         }
 
         /* Updates X position */
-        fX += fGlyphRenderWidth;
+        fX += fGlyphScaledWidth;
 
         break;
       }
