@@ -138,6 +138,13 @@ orxSTATUS orxFASTCALL Run()
 {
   orxSTATUS eResult = orxSTATUS_SUCCESS;
 
+  /* Screenshot? */
+  if(orxInput_IsActive("Screenshot") && orxInput_HasNewStatus("Screenshot"))
+  {
+    /* Captures it */
+    orxScreenshot_Capture();
+  }
+
   /* Should quit? */
   if(orxInput_IsActive("Quit"))
   {
