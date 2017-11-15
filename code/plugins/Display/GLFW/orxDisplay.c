@@ -1891,15 +1891,14 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
     /* Step through markers at this character index and update rendering data accordingly */
     for (; (u32MarkerIndex < _u32MarkerCounter) && (_pstMarkerArray[u32MarkerIndex].u32Index == u32CharacterIndex) ; u32MarkerIndex++ )
     {
-      /* TODO: Stop dereferncing everywhere by making this a non-pointer */
-      const orxTEXT_MARKER *pstMarker = _pstMarkerArray + u32MarkerIndex;
-      orxTEXT_MARKER_TYPE eType = pstMarker->stData.eType;
+      const orxTEXT_MARKER stMarker = _pstMarkerArray[u32MarkerIndex];
+      const orxTEXT_MARKER_TYPE eType = stMarker.stData.eType;
       switch (eType)
       {
         case orxTEXT_MARKER_TYPE_FONT:
         {
-          pstMarkerFontBitmap = pstMarker->stData.stFontData.pstFont;
-          pstMarkerFontCharacterMap = pstMarker->stData.stFontData.pstMap;
+          pstMarkerFontBitmap = stMarker.stData.stFontData.pstFont;
+          pstMarkerFontCharacterMap = stMarker.stData.stFontData.pstMap;
           fHeight = pstMarkerFontCharacterMap->fCharacterHeight;
           /* Prepares font for drawing */
           orxDisplay_GLFW_PrepareBitmap(pstMarkerFontBitmap, _eSmoothing, _eBlendMode);
@@ -1909,7 +1908,7 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
         {
           /* Multiply with bitmap color */
           orxRGBA stBitmapColor = _pstFont->stColor;
-          orxRGBA stMarkerColor = pstMarker->stData.stRGBA;
+          orxRGBA stMarkerColor = stMarker.stData.stRGBA;
           stMarkerBitmapColor.u8R = (stBitmapColor.u8R * stMarkerColor.u8R) / 255;
           stMarkerBitmapColor.u8G = (stBitmapColor.u8G * stMarkerColor.u8G) / 255;
           stMarkerBitmapColor.u8B = (stBitmapColor.u8B * stMarkerColor.u8B) / 255;
@@ -1918,12 +1917,12 @@ orxSTATUS orxFASTCALL orxDisplay_GLFW_TransformText(const orxSTRING _zString, co
         }
         case orxTEXT_MARKER_TYPE_SCALE:
         {
-          vMarkerGlyphScale = pstMarker->stData.vScale;
+          vMarkerGlyphScale = stMarker.stData.vScale;
           break;
         }
         case orxTEXT_MARKER_TYPE_LINE_HEIGHT:
         {
-          fLineHeight = pstMarker->stData.fLineHeight;
+          fLineHeight = stMarker.stData.fLineHeight;
           orxASSERT(fLineHeight > orxFLOAT_0);
           break;
         }
