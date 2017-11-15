@@ -232,7 +232,16 @@ static orxTEXT_MARKER *orxFASTCALL orxText_CreateMarker(orxBANK *_pstMarkerBank,
 }
 
 /** Create and push a marker stack entry with the specified data / fallback data.
- * @return      orxTEXT_MARKER_NODE
+ * The way markers behave is a lot like a stack. As an orxTEXT string is parsed, every marker it encounters is pushed onto the stack.
+ * When the special "pop marker" marker shows up, it pops the most recent addition to the stack.
+ * In this case "pop" means "revert to whatever this looked like before the most recent change".
+ * It needs to revert to something, but it can't choose the new "top of stack" because that marker may not be the right type.
+ * To overcome this, each stack entry has an associated fallback: the marker data of the last encountered marker of that type.
+ * @param[in] _pstStack        The marker stack used for the dry-run to add a marker stack entry to.
+ * @param[in] _pstStackBank    The memory bank used for allocations when adding to the dry-run stack.
+ * @param[in] _pstData         The marker data to use for the stack entry.
+ * @param[in] _pstFallbackData The marker data to fall back to when this stack entry is popped.
+ * @return    orxTEXT_MARKER_NODE
  */
 static const orxTEXT_MARKER_NODE *orxFASTCALL orxText_AddMarkerStackEntry(orxLINKLIST *_pstStack, orxBANK *_pstStackBank, const orxTEXT_MARKER_DATA *_pstData, const orxTEXT_MARKER_DATA *_pstFallbackData)
 {
