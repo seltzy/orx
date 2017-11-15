@@ -179,12 +179,12 @@ static orxINLINE const orxSTRING orxText_GetLocaleKey(const orxTEXT *_pstText, c
 }
 
 /** Checks type name against current spot in marker string, storing remainder of string after parsing
- * @param[in]   _zCheckTypeName Test marker type name
- * @param[in]   _zMarkerText    Pointer to string where marker type starts
- * @param[out]  _pzRemainder    Where to continue parsing from
+ * @param[in]   _zCheckTypeName Marker type name to check against.
+ * @param[in]   _zMarkerText    Pointer to string where marker type to check starts.
+ * @param[out]  _pzRemainder    Where to continue parsing from upon success. This will not be altered unless this function returns orxSTATUS_SUCCESS.
  * @return      orxSTATUS_SUCCESS / orxSTATUS_FAILURE
  */
-static orxSTATUS orxFASTCALL orxText_CheckMarkerType(const orxSTRING _zCheckTypeName, const orxSTRING _zMarkerText, const orxSTRING *_pzRemainder)
+static orxSTATUS orxFASTCALL orxText_MatchesMarkerTypeName(const orxSTRING _zCheckTypeName, const orxSTRING _zMarkerText, const orxSTRING *_pzRemainder)
 {
   orxASSERT((_zCheckTypeName != orxNULL) && (_zCheckTypeName != orxSTRING_EMPTY) && (*_zCheckTypeName != orxCHAR_NULL));
   orxASSERT((_zMarkerText != orxNULL) && (_zMarkerText != orxSTRING_EMPTY) && (*_zMarkerText != orxCHAR_NULL)) ;
@@ -436,23 +436,23 @@ static orxTEXT_MARKER_TYPE orxFASTCALL orxText_ParseMarkerType(const orxSTRING _
   const orxSTRING zTypeStart = _zString + _u32Offset;
 
   /* Find marker type */
-  if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_FONT, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
+  if (orxText_MatchesMarkerTypeName(orxTEXT_KZ_MARKER_TYPE_FONT, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
   {
     eResult = orxTEXT_MARKER_TYPE_FONT;
   }
-  else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_COLOR, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
+  else if (orxText_MatchesMarkerTypeName(orxTEXT_KZ_MARKER_TYPE_COLOR, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
   {
     eResult = orxTEXT_MARKER_TYPE_COLOR;
   }
-  else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_SCALE, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
+  else if (orxText_MatchesMarkerTypeName(orxTEXT_KZ_MARKER_TYPE_SCALE, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
   {
     eResult = orxTEXT_MARKER_TYPE_SCALE;
   }
-  else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_POP, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
+  else if (orxText_MatchesMarkerTypeName(orxTEXT_KZ_MARKER_TYPE_POP, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
   {
     eResult = orxTEXT_MARKER_TYPE_POP;
   }
-  else if (orxText_CheckMarkerType(orxTEXT_KZ_MARKER_TYPE_CLEAR, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
+  else if (orxText_MatchesMarkerTypeName(orxTEXT_KZ_MARKER_TYPE_CLEAR, zTypeStart, _pzRemainder) == orxSTATUS_SUCCESS)
   {
     eResult = orxTEXT_MARKER_TYPE_CLEAR;
   }
